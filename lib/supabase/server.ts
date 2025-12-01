@@ -19,7 +19,7 @@ export async function createSupabaseServerClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // ignore SSR set errors
+            // ignore errors (SSR set cookie issues)
           }
         },
       },
