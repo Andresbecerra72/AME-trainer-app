@@ -1,12 +1,12 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import type { Profile, QuestionWithDetails, Comment, Report, Notification, QuestionStatus, ReportStatus } from "./types"
 
 // Profile actions
 export async function getProfile(userId: string): Promise<Profile | null> {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
 
   if (error) {
@@ -17,7 +17,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 }
 
 export async function getCurrentUser(): Promise<Profile | null> {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -26,7 +26,7 @@ export async function getCurrentUser(): Promise<Profile | null> {
 }
 
 export async function updateProfile(userId: string, updates: Partial<Profile>) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("profiles").update(updates).eq("id", userId)
 
   if (error) throw error
@@ -43,7 +43,7 @@ export async function getQuestions(filters?: {
   limit?: number
   offset?: number
 }): Promise<QuestionWithDetails[]> {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   let query = supabase.from("questions").select(`
       *,
       topic:topics(*),
@@ -72,7 +72,7 @@ export async function getQuestions(filters?: {
 }
 
 export async function getQuestion(questionId: string): Promise<QuestionWithDetails | null> {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("questions")
     .select(`
@@ -101,7 +101,7 @@ export async function createQuestion(question: {
   topic_id: string
   difficulty: string
 }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -123,7 +123,7 @@ export async function createQuestion(question: {
 }
 
 export async function updateQuestionStatus(questionId: string, status: QuestionStatus, reviewNotes?: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -143,7 +143,7 @@ export async function updateQuestionStatus(questionId: string, status: QuestionS
 }
 
 export async function deleteQuestion(questionId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("questions").delete().eq("id", questionId)
 
   if (error) throw error
@@ -152,7 +152,7 @@ export async function deleteQuestion(questionId: string) {
 
 // Vote actions
 export async function voteQuestion(questionId: string, voteType: number) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -186,7 +186,7 @@ export async function voteQuestion(questionId: string, voteType: number) {
 }
 
 async function updateQuestionVotes(questionId: string, delta: number) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data: question } = await supabase.from("questions").select("upvotes, downvotes").eq("id", questionId).single()
 
   if (question) {
@@ -199,7 +199,7 @@ async function updateQuestionVotes(questionId: string, delta: number) {
 
 // Comment actions
 export async function getComments(questionId: string): Promise<Comment[]> {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("comments")
     .select(`
@@ -217,7 +217,7 @@ export async function getComments(questionId: string): Promise<Comment[]> {
 }
 
 export async function createComment(questionId: string, content: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -244,7 +244,7 @@ export async function createComment(questionId: string, content: string) {
 
 // Bookmark actions
 export async function toggleBookmark(questionId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -273,7 +273,7 @@ export async function createReport(data: {
   reason: string
   description?: string
 }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -293,7 +293,7 @@ export async function createReport(data: {
 }
 
 export async function getReports(status?: ReportStatus): Promise<Report[]> {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   let query = supabase.from("reports").select("*").order("created_at", { ascending: false })
 
   if (status) query = query.eq("status", status)
@@ -307,7 +307,7 @@ export async function getReports(status?: ReportStatus): Promise<Report[]> {
 }
 
 export async function resolveReport(reportId: string, status: ReportStatus, notes?: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -329,7 +329,7 @@ export async function resolveReport(reportId: string, status: ReportStatus, note
 
 // Notification actions
 export async function getNotifications(userId: string): Promise<Notification[]> {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("notifications")
     .select("*")
@@ -345,7 +345,7 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
 }
 
 export async function markNotificationRead(notificationId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   await supabase.from("notifications").update({ is_read: true }).eq("id", notificationId)
 
   revalidatePath("/notifications")
@@ -358,7 +358,7 @@ export async function createNotification(
   link?: string,
   actorId?: string,
 ) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("notifications").insert({
     user_id: userId,
     type,
@@ -376,7 +376,7 @@ export async function createNotification(
 
 // Notification preferences functions
 export async function getNotificationPreferences(userId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase.from("notification_preferences").select("*").eq("user_id", userId).single()
 
   if (error && error.code !== "PGRST116") {
@@ -387,7 +387,7 @@ export async function getNotificationPreferences(userId: string) {
 }
 
 export async function updateNotificationPreferences(userId: string, preferences: any) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   // Check if preferences exist
   const existing = await getNotificationPreferences(userId)
@@ -411,7 +411,7 @@ export async function updateNotificationPreferences(userId: string, preferences:
 
 // Topic actions
 export async function getTopics() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase.from("topics").select("*").order("name")
 
   if (error) {
@@ -422,7 +422,7 @@ export async function getTopics() {
 }
 
 export async function createTopic(data: { name: string; description?: string }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const currentUser = await getCurrentUser()
 
   if (!currentUser || currentUser.role === "user") {
@@ -443,7 +443,7 @@ export async function createTopic(data: { name: string; description?: string }) 
 }
 
 export async function updateTopic(id: string, data: { name?: string; description?: string }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const currentUser = await getCurrentUser()
 
   if (!currentUser || currentUser.role === "user") {
@@ -461,7 +461,7 @@ export async function updateTopic(id: string, data: { name?: string; description
 }
 
 export async function deleteTopic(id: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const currentUser = await getCurrentUser()
 
   if (!currentUser || currentUser.role === "user") {
@@ -487,7 +487,7 @@ export async function saveExamHistory(data: {
   score_percentage: number
   time_taken: number
 }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -509,7 +509,7 @@ export async function saveExamHistory(data: {
 }
 
 export async function getExamHistory(userId: string, limit = 10) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("exam_history")
     .select("*")
@@ -525,7 +525,7 @@ export async function getExamHistory(userId: string, limit = 10) {
 }
 
 export async function getUserStats(userId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   const [profile, examHistory, questions, bookmarks] = await Promise.all([
     getProfile(userId),
@@ -562,7 +562,7 @@ export async function createEditSuggestion(data: {
   suggestedData: any
   reason: string
 }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -582,7 +582,7 @@ export async function createEditSuggestion(data: {
 }
 
 export async function getEditSuggestions(questionId?: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   let query = supabase
     .from("edit_suggestions")
     .select(`
@@ -610,7 +610,7 @@ export async function reviewEditSuggestion(
   status: "approved" | "rejected",
   applyChanges = false,
 ) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -647,7 +647,7 @@ export async function reviewEditSuggestion(
 }
 
 export async function markQuestionInconsistent(questionId: string, notes: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase
     .from("questions")
     .update({
@@ -661,7 +661,7 @@ export async function markQuestionInconsistent(questionId: string, notes: string
 }
 
 export async function mergeQuestions(sourceId: string, targetId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   // Copy votes from source to target
   await supabase.rpc("merge_question_votes", { source_id: sourceId, target_id: targetId })
@@ -682,7 +682,7 @@ export async function getCommunityExams(filters?: {
   limit?: number
   offset?: number
 }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   let query = supabase.from("community_exams").select(`
       *,
       creator:profiles!created_by(*)
@@ -705,7 +705,7 @@ export async function getCommunityExams(filters?: {
 }
 
 export async function getCommunityExam(examId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("community_exams")
     .select(`
@@ -731,7 +731,7 @@ export async function createCommunityExam(data: {
   difficulty: string
   is_public?: boolean
 }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -753,7 +753,7 @@ export async function createCommunityExam(data: {
 }
 
 export async function updateCommunityExam(examId: string, updates: any) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -766,7 +766,7 @@ export async function updateCommunityExam(examId: string, updates: any) {
 }
 
 export async function deleteCommunityExam(examId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -779,7 +779,7 @@ export async function deleteCommunityExam(examId: string) {
 }
 
 export async function rateExam(examId: string, rating: number, review?: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -804,7 +804,7 @@ export async function rateExam(examId: string, rating: number, review?: string) 
 }
 
 async function updateExamRating(examId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   const { data: ratings } = await supabase.from("exam_ratings").select("rating").eq("exam_id", examId)
 
@@ -821,7 +821,7 @@ async function updateExamRating(examId: string) {
 }
 
 export async function getExamRatings(examId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("exam_ratings")
     .select(`
@@ -839,7 +839,7 @@ export async function getExamRatings(examId: string) {
 }
 
 export async function incrementExamTakenCount(examId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data: exam } = await supabase.from("community_exams").select("taken_count").eq("id", examId).single()
 
   if (exam) {
@@ -856,7 +856,7 @@ export async function createExamAttempt(
   score: number,
   answers: Record<number, string>,
 ) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   try {
     // Insert exam attempt
@@ -890,7 +890,7 @@ export async function createExamAttempt(
 
 // User badges actions
 export async function getUserBadges(userId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("user_badges")
     .select(`
@@ -909,7 +909,7 @@ export async function getUserBadges(userId: string) {
 
 // System settings functions
 export async function getSystemSettings() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase.from("system_settings").select("*").order("setting_key", { ascending: true })
 
   if (error) {
@@ -920,7 +920,7 @@ export async function getSystemSettings() {
 }
 
 export async function updateSystemSetting(key: string, value: any, userId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase
     .from("system_settings")
     .update({
@@ -941,7 +941,7 @@ export async function updateSystemSetting(key: string, value: any, userId: strin
 
 // Saved exams functions
 export async function saveExam(userId: string, examId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("saved_exams").insert({ user_id: userId, exam_id: examId })
 
   if (error) {
@@ -954,7 +954,7 @@ export async function saveExam(userId: string, examId: string) {
 }
 
 export async function unsaveExam(userId: string, examId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("saved_exams").delete().eq("user_id", userId).eq("exam_id", examId)
 
   if (error) {
@@ -967,7 +967,7 @@ export async function unsaveExam(userId: string, examId: string) {
 }
 
 export async function getSavedExams(userId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("saved_exams")
     .select(`
@@ -989,7 +989,7 @@ export async function getSavedExams(userId: string) {
 
 // Admin stats
 export async function getAdminStats() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   const [{ count: totalUsers }, { count: totalQuestions }, { count: pendingQuestions }, { count: pendingReports }] =
     await Promise.all([
@@ -1009,7 +1009,7 @@ export async function getAdminStats() {
 
 // Platform analytics function for super admin
 export async function getPlatformAnalytics() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   const [
     { count: totalUsers },
@@ -1065,7 +1065,7 @@ export async function getPlatformAnalytics() {
 
 // Announcement management functions
 export async function getActiveAnnouncements() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("announcements")
     .select("*")
@@ -1083,7 +1083,7 @@ export async function createAnnouncement(
   type: "info" | "warning" | "success" | "error",
   expiresAt?: string,
 ) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -1102,7 +1102,7 @@ export async function createAnnouncement(
 }
 
 export async function markAnnouncementViewed(announcementId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -1116,7 +1116,7 @@ export async function markAnnouncementViewed(announcementId: string) {
 
 // Study streak and engagement functions
 export async function updateStudyStreak(userId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const today = new Date().toISOString().split("T")[0]
 
   const { data: streak } = await supabase.from("study_streaks").select("*").eq("user_id", userId).single()
@@ -1161,14 +1161,14 @@ export async function updateStudyStreak(userId: string) {
 }
 
 export async function getStudyStreak(userId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase.from("study_streaks").select("*").eq("user_id", userId).single()
 
   return data || { current_streak: 0, longest_streak: 0 }
 }
 
 export async function getQuestionOfDay() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const today = new Date().toISOString().split("T")[0]
 
   const { data: qotd } = await supabase
@@ -1216,7 +1216,7 @@ export async function getQuestionOfDay() {
 }
 
 export async function trackDailyActivity(userId: string, activityType: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const today = new Date().toISOString().split("T")[0]
 
   const { data: existing } = await supabase
@@ -1248,7 +1248,7 @@ export async function trackDailyActivity(userId: string, activityType: string) {
 
 // Recommendation engine functions
 export async function getRecommendedQuestions(userId: string, limit = 10) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   // Get user's exam history to understand weak topics
   const examHistory = await getExamHistory(userId, 20)
@@ -1305,7 +1305,7 @@ export async function getRecommendedQuestions(userId: string, limit = 10) {
 }
 
 export async function getRecentPlatformActivity(limit = 20) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   const [recentQuestions, recentComments, recentExams] = await Promise.all([
     supabase
@@ -1351,7 +1351,7 @@ export async function getRecentPlatformActivity(limit = 20) {
       user: q.author,
       timestamp: q.created_at,
     })),
-    ...(recentComments.data || []).map((c) => ({
+    ...((recentComments.data || []) as any[]).map((c) => ({
       type: "comment" as const,
       id: c.id,
       text: c.content,
@@ -1376,7 +1376,7 @@ export async function getRecentPlatformActivity(limit = 20) {
 }
 
 export async function getUserActivity(userId: string, limit = 20) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   const [questions, comments, votes, editSuggestions] = await Promise.all([
     supabase
@@ -1429,7 +1429,7 @@ export async function getUserActivity(userId: string, limit = 20) {
       upvotes: q.upvotes,
       timestamp: q.created_at,
     })),
-    ...(comments.data || []).map((c) => ({
+    ...((comments.data || []) as any[]).map((c) => ({
       type: "comment_added" as const,
       id: c.id,
       text: c.content,
@@ -1437,7 +1437,7 @@ export async function getUserActivity(userId: string, limit = 20) {
       questionId: c.question?.id,
       timestamp: c.created_at,
     })),
-    ...(votes.data || []).map((v) => ({
+    ...((votes.data || []) as any[]).map((v) => ({
       type: "voted" as const,
       id: v.id,
       voteType: v.vote_type,
@@ -1445,7 +1445,7 @@ export async function getUserActivity(userId: string, limit = 20) {
       questionId: v.question?.id,
       timestamp: v.created_at,
     })),
-    ...(editSuggestions.data || []).map((e) => ({
+    ...((editSuggestions.data || []) as any[]).map((e) => ({
       type: "edit_suggested" as const,
       id: e.id,
       status: e.status,
@@ -1462,7 +1462,7 @@ export async function getUserActivity(userId: string, limit = 20) {
 
 // Question collections functions
 export async function getCollections(userId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("question_collections")
     .select("*, question_count:collection_questions(count)")
@@ -1477,7 +1477,7 @@ export async function getCollections(userId: string) {
 }
 
 export async function getCollection(collectionId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("question_collections")
     .select(`
@@ -1505,7 +1505,7 @@ export async function createCollection(data: {
   description?: string
   is_public?: boolean
 }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -1528,7 +1528,7 @@ export async function createCollection(data: {
 }
 
 export async function updateCollection(collectionId: string, updates: any) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase
     .from("question_collections")
     .update({ ...updates, updated_at: new Date().toISOString() })
@@ -1539,7 +1539,7 @@ export async function updateCollection(collectionId: string, updates: any) {
 }
 
 export async function deleteCollection(collectionId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("question_collections").delete().eq("id", collectionId)
 
   if (error) throw error
@@ -1547,7 +1547,7 @@ export async function deleteCollection(collectionId: string) {
 }
 
 export async function addQuestionToCollection(collectionId: string, questionId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase
     .from("collection_questions")
     .insert({ collection_id: collectionId, question_id: questionId })
@@ -1557,7 +1557,7 @@ export async function addQuestionToCollection(collectionId: string, questionId: 
 }
 
 export async function removeQuestionFromCollection(collectionId: string, questionId: string) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase
     .from("collection_questions")
     .delete()
@@ -1570,7 +1570,7 @@ export async function removeQuestionFromCollection(collectionId: string, questio
 
 // Weekly challenges functions
 export async function getActiveChallenge() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const today = new Date().toISOString().split("T")[0]
 
   const { data, error } = await supabase
@@ -1589,7 +1589,7 @@ export async function getActiveChallenge() {
 }
 
 export async function getChallengeLeaderboard(challengeId: string, limit = 10) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("challenge_attempts")
     .select(`
@@ -1614,7 +1614,7 @@ export async function submitChallengeAttempt(data: {
   totalQuestions: number
   timeTaken: number
 }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -1641,7 +1641,7 @@ export async function createChallenge(data: {
   startDate: string
   endDate: string
 }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const currentUser = await getCurrentUser()
 
   if (!currentUser || currentUser.role === "user") {

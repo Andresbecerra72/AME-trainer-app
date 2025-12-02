@@ -1,6 +1,6 @@
 import { MobileHeader } from "@/components/mobile-header"
 import { TopicCard } from "@/components/topic-card"
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import { Wrench, Plane, Zap, Cpu, Box, BookOpen } from "lucide-react"
 import { BottomNav } from "@/components/bottom-nav"
@@ -15,7 +15,7 @@ const iconMap = {
 }
 
 export default async function TopicsPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   const { data: topics, error } = await supabase.from("topics").select("*, questions(count)").order("name")
 

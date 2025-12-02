@@ -1,16 +1,15 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
 import { PrimaryButton } from "@/components/primary-button"
 import { Plane, Users, BookOpen, Trophy } from "lucide-react"
 import Link from "next/link"
+import { getCurrentUser } from "@/features/auth/services/auth.server";
 
 export default async function LandingPage() {
   console.log("Rendering Landing Page...");
-  const supabase = await createClient()
   const {
     data: { user },
     error
-  } = await supabase.auth.getUser()
+  } = await getCurrentUser()
 
   console.log("LANDING PAGE ERROR:", error);
   console.log("LANDING PAGE USER:", user);

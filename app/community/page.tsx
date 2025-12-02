@@ -8,33 +8,33 @@ import { MessageCircle, Plus, Search } from "lucide-react"
 import Link from "next/link"
 import { Suspense } from "react"
 import { BottomNav } from "@/components/bottom-nav"
-import { createClient } from "@/lib/supabase/server"
 import { EmptyState } from "@/components/empty-state"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useTransition } from "react"
-
+import { getCurrentUser } from "@/features/auth/services/auth.server"
+import { supabaseBrowserClient } from "@/lib/supabase/client"
+//TODO: Refactor to use server components where possible
 async function CommunityContent({
   searchParams,
 }: {
   searchParams: { search?: string; topic?: string; difficulty?: string; status?: string; sort?: string }
 }) {
-  const supabase = await createClient()
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await getCurrentUser()
   let userRole: "user" | "admin" | "super_admin" = "user"
 
   if (user) {
-    const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single()
+    const { data: profile } = await supabaseBrowserClient.from("users").select("role").eq("id", user.id).single()
     userRole = profile?.role || "user"
   }
 
   // Fetch topics
-  const { data: topics } = await supabase.from("topics").select("*").order("name")
+  const { data: topics } = await supabaseBrowserClient.from("topics").select("*").order("name")
 
   // Fetch questions with filters
-  let query = supabase
+  let query = supabaseBrowserClient
     .from("questions")
     .select(`
       *,
@@ -91,9 +91,9 @@ async function CommunityContent({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Topics</SelectItem>
-                {topics.map((topic) => (
-                  <SelectItem key={topic.id} value={topic.id}>
-                    {topic.name}
+                {topics && topics.map((topic) => (
+                  <SelectItem key={topic['id']} value={topic['id']}>
+                    {topic['name']}
                   </SelectItem>
                 ))}
               </SelectContent>

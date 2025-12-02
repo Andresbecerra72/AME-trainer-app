@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { MobileCard } from "@/components/mobile-card"
 import { BottomNav } from "@/components/bottom-nav"
@@ -24,7 +24,7 @@ import { StudyStreakWidget } from "@/components/study-streak-widget"
 
 export default async function DashboardPage() {
   console.log(" AQUI Rendering Dashboard Page...");
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
