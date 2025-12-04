@@ -1250,10 +1250,9 @@ export async function trackDailyActivity(userId: string, activityType: string) {
 export async function getRecommendedQuestions(userId: string, limit = 10) {
   const supabase = await createSupabaseServerClient()
 
-  // Get user's exam history to understand weak topics
+  // Get user's exam history
   const examHistory = await getExamHistory(userId, 20)
 
-  // Calculate topic performance
   const topicPerformance: Record<string, { correct: number; total: number }> = {}
 
   for (const exam of examHistory) {
@@ -1264,23 +1263,25 @@ export async function getRecommendedQuestions(userId: string, limit = 10) {
     }
   }
 
-  // Find weak topics (below 70% accuracy)
   const weakTopics = Object.entries(topicPerformance)
     .filter(([_, perf]) => perf.total > 0 && perf.correct / perf.total < 0.7)
     .map(([topicId]) => topicId)
 
-  // Get user's answered questions to avoid recommending them
-  const { data: userAnswers } = await supabase.from("user_answers").select("question_id").eq("user_id", userId)
+  // Get answered questions
+  const { data: userAnswers } = await supabase
+    .from("user_answers")
+    .select("question_id")
+    .eq("user_id", userId)
 
   const answeredIds = (userAnswers || []).map((a) => a.question_id)
 
-  // Get recommended questions from weak topics or popular questions
+  // Build recommendation query
   let query = supabase
     .from("questions")
     .select(`
       *,
       topic:topics(*),
-      author:profiles(*)
+      author:profiles!questions_author_id_fkey (*)
     `)
     .eq("status", "approved")
 
@@ -1303,6 +1304,7 @@ export async function getRecommendedQuestions(userId: string, limit = 10) {
 
   return data || []
 }
+
 
 export async function getRecentPlatformActivity(limit = 20) {
   const supabase = await createSupabaseServerClient()

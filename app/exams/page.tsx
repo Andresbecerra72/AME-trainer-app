@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server"
 import { getCommunityExams } from "@/lib/db-actions"
 import { MobileHeader } from "@/components/mobile-header"
 import { BottomNav } from "@/components/bottom-nav"
@@ -9,12 +8,12 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Plus, Star, Users, Clock, TrendingUp, BookOpen } from "lucide-react"
 import { EmptyState } from "@/components/empty-state"
+import { getCurrentUser } from "@/features/auth/services/auth.server"
 
 export default async function CommunityExamsPage() {
-  const supabase = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await getCurrentUser()
 
   const exams = await getCommunityExams({ limit: 50 })
   const featuredExams = exams.filter((e) => e.is_featured).slice(0, 3)
