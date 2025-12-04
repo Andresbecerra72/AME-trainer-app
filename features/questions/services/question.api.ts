@@ -35,3 +35,11 @@ export async function markQuestionAsDoubtful(questionId: string) {
     .update({ is_doubtful: true })
     .eq("id", questionId);
 }
+
+export async function getUserQuestions(user_id: string) {
+  return await supabaseBrowserClient
+     .from("questions")
+    .select("id", { count: "exact" })
+    .eq("author_id", user_id)
+    .eq("status", "approved")
+}

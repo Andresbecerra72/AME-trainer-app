@@ -35,3 +35,22 @@ export async function getQuestionFeedServer() {
 
   return data ?? [];
 }
+
+export async function getRecentQuestions() {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("questions")
+        .select(`
+          *,
+          author:profiles!questions_author_id_fkey (*),
+          topic:topics(id, name, code)
+        `)
+        .eq("status", "approved")
+        .order("created_at", { ascending: false })
+        .limit(3)
+
+  if (error) console.error(error);
+
+  return data ?? [];
+}
