@@ -2,16 +2,14 @@ import { redirect } from "next/navigation"
 import { PrimaryButton } from "@/components/primary-button"
 import { Plane, Users, BookOpen, Trophy } from "lucide-react"
 import Link from "next/link"
-import { getCurrentUser } from "@/features/auth/services/auth.server";
+import { getSession } from "@/features/auth/services/getSession";
 
 export default async function LandingPage() {
   console.log("Rendering Landing Page...");
-  const {
-    data: { user },
-    error
-  } = await getCurrentUser()
+  const { user, profile } = await getSession()
+ 
 
-  console.log("LANDING PAGE ERROR:", error);
+  console.log("LANDING PAGE PROFILE:", profile);
   console.log("LANDING PAGE USER:", user);
 
   if (user) {

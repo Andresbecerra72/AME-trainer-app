@@ -1,68 +1,88 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server"
+import { createServerClient } from "@supabase/ssr"
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  console.log("Middleware triggered for:", request.nextUrl.pathname);
+  const url = request.nextUrl
+  const pathname = url.pathname
 
+  const ADMIN_PATHS = ["/admin"]
+  const SUPER_PATHS = ["/super"]
+  const PROTECTED_PATHS = ["/dashboard", "/questions", "/community", "/profile"]
+
+  let response = NextResponse.next({ request })
+
+  // Supabase SSR client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
-          return request.cookies.getAll();
+          return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
-          );
+          )
         },
       },
     }
-  );
+  )
 
+  // Get auth user
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
-  const PUBLIC_ROUTES = ["/auth/login", "/auth/register", "/landing"];
-  const ADMIN_ROUTES = ["/admin", "/admin/"];
+  // Check if route is protected
+  const isProtected = PROTECTED_PATHS.some((path) =>
+    pathname.startsWith(path)
+  )
 
-  const isPublic = PUBLIC_ROUTES.some((p) =>
-    request.nextUrl.pathname.startsWith(p)
-  );
-
-  const isAdminRoute = ADMIN_ROUTES.some((p) =>
-    request.nextUrl.pathname.startsWith(p)
-  );
-
-  if (!user && !isPublic) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/auth/login";
-    return NextResponse.redirect(url);
+  if (isProtected && !user) {
+    url.pathname = "/auth/login"
+    return NextResponse.redirect(url)
   }
 
-  if (isAdminRoute) {
+  // Check admin routes
+  if (user && ADMIN_PATHS.some((path) => pathname.startsWith(path))) {
     const { data: profile } = await supabase
-      .from("users")
+      .from("profiles")
       .select("role")
-      .eq("id", user?.id)
-      .single();
+      .eq("id", user.id)
+      .single()
 
-    if (!profile || !["admin", "super_admin"].includes(profile.role)) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/dashboard";
-      return NextResponse.redirect(url);
+    if (profile?.role !== "admin" && profile?.role !== "super_admin") {
+      url.pathname = "/dashboard"
+      return NextResponse.redirect(url)
     }
   }
 
-  return response;
+  // Check super admin routes
+  if (user && SUPER_PATHS.some((path) => pathname.startsWith(path))) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single()
+
+    if (profile?.role !== "super_admin") {
+      url.pathname = "/dashboard"
+      return NextResponse.redirect(url)
+    }
+  }
+
+  return response
 }
 
 export const config = {
-  matcher: ["/((?!_next|.*\\..*).*)"],
-};
+  matcher: [
+    "/dashboard/:path*",
+    "/questions/:path*",
+    "/community/:path*",
+    "/profile/:path*",
+    "/admin/:path*",
+    "/super/:path*",
+  ],
+}

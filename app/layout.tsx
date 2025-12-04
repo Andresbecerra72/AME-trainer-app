@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
+import { UserProvider } from "@/features/auth/components/UserProvider"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -44,13 +45,20 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
+    //TODO: corrregir esto de la hidratacion
+    // Añade suppressHydrationWarning={true} aquí:
     <html lang="en">
-      <body className={`font-sans antialiased`}>
-        {children}
+      <body
+        className={`font-sans antialiased`}
+        suppressHydrationWarning={true} 
+      >
+        <UserProvider>
+          {children}
+        </UserProvider>
         <Toaster />
         <Analytics />
       </body>
