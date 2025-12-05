@@ -2,20 +2,27 @@ import { MobileHeader } from "@/components/mobile-header"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { createClient } from "@/lib/supabase/server"
 import { QuestionCardItem } from "@/components/question-card-item"
 import { BottomNav } from "@/components/bottom-nav"
+import { supabaseBrowserClient } from "@/lib/supabase/client"
 
 export default async function TopicQuestionsPage({
   params,
   searchParams,
 }: { params: { slug: string }; searchParams: { search?: string; filter?: string } }) {
-  const supabase = await createClient()
-  const searchQuery = searchParams.search || ""
-  const filter = searchParams.filter || "all"
+  const { slug } = await params
+  const { search, filter } = await searchParams
+  console.log("TopicsQuestionsPage params", slug)
+  console.log("TopicsQuestionsPage searchParams", search, filter)
+
+  const supabase = supabaseBrowserClient
+  const searchQuery = search || ""
+  const filterQuery = filter || "all"
 
   // Get topic by slug
-  const { data: topic } = await supabase.from("topics").select("*").eq("slug", params.slug).single()
+  const { data: topic } = await supabase.from("topics").select("*").eq("name", slug).single()
+
+  console.log("Fetched topic:", topic)
 
   if (!topic) {
     return <div>Topic not found</div>
@@ -53,14 +60,14 @@ export default async function TopicQuestionsPage({
 
         {/* Filter Buttons */}
         <div className="flex gap-2">
-          <Button variant={filter === "all" ? "default" : "outline"} size="sm" asChild className="flex-1">
-            <a href={`/topics/${params.slug}?filter=all`}>All</a>
+          <Button variant={filterQuery === "all" ? "default" : "outline"} size="sm" asChild className="flex-1">
+            <a href={`/topics/${slug}?filter=all`}>All</a>
           </Button>
-          <Button variant={filter === "answered" ? "default" : "outline"} size="sm" asChild className="flex-1">
-            <a href={`/topics/${params.slug}?filter=answered`}>Answered</a>
+          <Button variant={filterQuery === "answered" ? "default" : "outline"} size="sm" asChild className="flex-1">
+            <a href={`/topics/${slug}?filter=answered`}>Answered</a>
           </Button>
-          <Button variant={filter === "unanswered" ? "default" : "outline"} size="sm" asChild className="flex-1">
-            <a href={`/topics/${params.slug}?filter=unanswered`}>Unanswered</a>
+          <Button variant={filterQuery === "unanswered" ? "default" : "outline"} size="sm" asChild className="flex-1">
+            <a href={`/topics/${slug}?filter=unanswered`}>Unanswered</a>
           </Button>
         </div>
 
