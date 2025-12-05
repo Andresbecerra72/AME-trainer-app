@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
 import { PrimaryButton } from "@/components/primary-button"
@@ -8,11 +9,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useRouter } from "next/navigation"
 
-type Topic = any
+interface Topic {
+  id: string
+  name: string
+  question_count: number
+}
 
-export default function ExamSetupClient({ topics }: { topics: Topic[] }) {
+interface ExamSetupClientProps {
+  topics: Topic[]
+}
+
+export function ExamSetupClient({ topics }: ExamSetupClientProps) {
   const router = useRouter()
   const [selectedTopics, setSelectedTopics] = useState<string[]>([])
   const [questionCount, setQuestionCount] = useState("20")
@@ -27,12 +35,7 @@ export default function ExamSetupClient({ topics }: { topics: Topic[] }) {
       alert("Please select at least one topic")
       return
     }
-    const params = new URLSearchParams({
-      topics: selectedTopics.join(","),
-      count: questionCount,
-      timer: timerEnabled.toString(),
-    })
-    router.push(`/exam/run?${params.toString()}`)
+    router.push("/exam/run")
   }
 
   return (
