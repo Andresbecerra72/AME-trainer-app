@@ -1,9 +1,9 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { notFound, redirect } from "next/navigation"
 import { ExamTakeClient } from "./exam-take-client"
 
 export default async function TakeExamPage({ params }: { params: { id: string } }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

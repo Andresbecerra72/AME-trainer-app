@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label"
 import { markQuestionInconsistent } from "@/lib/db-actions"
 
 export default async function ReportsPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -79,7 +79,7 @@ function ReportCard({ report }: { report: any }) {
     "use server"
     const reportId = formData.get("reportId") as string
     const action = formData.get("action") as string
-    const supabase = await createClient()
+    const supabase = await createSupabaseServerClient()
 
     if (action === "resolved") {
       await supabase.from("reports").update({ status: "resolved" }).eq("id", reportId)

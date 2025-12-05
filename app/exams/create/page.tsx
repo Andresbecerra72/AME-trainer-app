@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getTopics } from "@/lib/db-actions"
 import { MobileHeader } from "@/components/mobile-header"
 import { ExamCreateForm } from "./exam-create-form"
 
 export default async function CreateExamPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

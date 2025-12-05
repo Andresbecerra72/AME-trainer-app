@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import { MobileHeader } from "@/components/mobile-header"
 import { BottomNav } from "@/components/bottom-nav"
@@ -12,7 +12,7 @@ import { saveExam, unsaveExam } from "@/lib/db-actions"
 import { ShareButton } from "@/components/share-button"
 
 export default async function ExamDetailPage({ params }: { params: { id: string } }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -74,7 +74,7 @@ export default async function ExamDetailPage({ params }: { params: { id: string 
 
   async function toggleSaveExam() {
     "use server"
-    const supabase = await createClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

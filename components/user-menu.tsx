@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { User, Settings, LogOut, Shield, TrendingUp } from "lucide-react"
 import type { Profile } from "@/lib/types"
-import { createClient } from "@/lib/supabase/client"
+import { supabaseBrowserClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 
 interface UserMenuProps {
@@ -28,7 +28,7 @@ export function UserMenu({ user }: UserMenuProps) {
   const handleSignOut = async () => {
     setIsLoading(true)
     try {
-      const supabase = createClient()
+      const supabase = supabaseBrowserClient
       await supabase.auth.signOut()
       router.push("/auth/login")
       router.refresh()

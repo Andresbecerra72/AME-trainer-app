@@ -4,7 +4,7 @@ export async function getAllTopicsClient() {
   const { data, error } = await supabaseBrowserClient
     .from("topics")
     .select("*")
-    .order("title", { ascending: true });
+    .order("name", { ascending: true });
 
   if (error) throw error;
   return data;

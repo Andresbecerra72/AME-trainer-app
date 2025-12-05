@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
@@ -9,11 +7,11 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { useRouter } from "next/navigation"
 
 export default async function ExamSetupPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

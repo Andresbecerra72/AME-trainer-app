@@ -2,7 +2,7 @@ import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
 import { PrimaryButton } from "@/components/primary-button"
 import { Trophy, Clock, Users, Calendar } from "lucide-react"
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
 import { getActiveChallenge, getChallengeLeaderboard } from "@/lib/db-actions"
@@ -10,7 +10,7 @@ import Link from "next/link"
 import { EmptyState } from "@/components/empty-state"
 
 export default async function ChallengesPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

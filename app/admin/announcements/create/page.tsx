@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { createAnnouncement } from "@/lib/db-actions"
 
 export default async function CreateAnnouncementPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

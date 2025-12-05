@@ -2,13 +2,13 @@ import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
 import { ProgressBar } from "@/components/progress-bar"
 import { TrendingUp, TrendingDown, AlertCircle, Clock, Target, Award } from "lucide-react"
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
 import { getUserStats, getExamHistory } from "@/lib/db-actions"
 
 export default async function AnalyticsPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

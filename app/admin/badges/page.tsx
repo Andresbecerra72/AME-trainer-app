@@ -7,12 +7,12 @@ import { Label } from "@/components/ui/label"
 import { Award } from "lucide-react"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { BottomNav } from "@/components/bottom-nav"
 
 async function assignBadge(formData: FormData) {
   "use server"
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   const userId = formData.get("userId") as string
   const badgeId = formData.get("badgeId") as string
@@ -27,7 +27,7 @@ async function assignBadge(formData: FormData) {
 
 async function createBadge(formData: FormData) {
   "use server"
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   const name = formData.get("name") as string
   const description = formData.get("description") as string
@@ -51,7 +51,7 @@ export default async function BadgesManagementPage() {
     redirect("/dashboard")
   }
 
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   const { data: badges } = await supabase.from("badges").select("*").order("name")
   const { data: users } = await supabase.from("profiles").select("id, username, role").order("username")

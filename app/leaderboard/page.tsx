@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
 import { Trophy, Award, TrendingUp, Star } from "lucide-react"
@@ -9,7 +9,7 @@ import { BottomNav } from "@/components/bottom-nav"
 import { EmptyState } from "@/components/empty-state"
 
 export default async function LeaderboardPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   const {
     data: { user },

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ duplicates: [] })
     }
 
-    const supabase = await createClient()
+    const supabase = await createSupabaseServerClient()
 
     // Fetch all approved questions
     const { data: questions } = await supabase.from("questions").select("id, question_text").eq("status", "approved")

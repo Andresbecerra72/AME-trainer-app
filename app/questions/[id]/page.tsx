@@ -3,12 +3,12 @@ import { MobileCard } from "@/components/mobile-card"
 import { AnswerButton } from "@/components/answer-button"
 import { SecondaryButton } from "@/components/secondary-button"
 import { Edit, Trash2 } from "lucide-react"
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { BottomNav } from "@/components/bottom-nav"
 import Link from "next/link"
 
 export default async function ViewQuestionPage({ params }: { params: { id: string } }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
 
   const { data: question, error } = await supabase
     .from("questions")

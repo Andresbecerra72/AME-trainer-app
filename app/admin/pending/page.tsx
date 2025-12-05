@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { BottomNav } from "@/components/bottom-nav"
 
 export default async function PendingQuestionsPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -65,7 +65,7 @@ function PendingQuestionCard({ question }: { question: any }) {
   async function approveQuestion(formData: FormData) {
     "use server"
     const questionId = formData.get("questionId") as string
-    const supabase = await createClient()
+    const supabase = await createSupabaseServerClient()
 
     await supabase.from("questions").update({ status: "approved" }).eq("id", questionId)
 
@@ -82,7 +82,7 @@ function PendingQuestionCard({ question }: { question: any }) {
     "use server"
     const questionId = formData.get("questionId") as string
     const reason = formData.get("reason") as string
-    const supabase = await createClient()
+    const supabase = await createSupabaseServerClient()
 
     await supabase
       .from("questions")

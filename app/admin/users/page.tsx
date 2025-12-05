@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BottomNav } from "@/components/bottom-nav"
 
 export default async function UsersManagementPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -61,7 +61,7 @@ function UserCard({ user }: { user: any }) {
     "use server"
     const userId = formData.get("userId") as string
     const newRole = formData.get("role") as string
-    const supabase = await createClient()
+    const supabase = await createSupabaseServerClient()
 
     await supabase.from("users").update({ role: newRole }).eq("id", userId)
   }

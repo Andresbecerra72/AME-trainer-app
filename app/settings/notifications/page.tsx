@@ -3,13 +3,13 @@ import { MobileCard } from "@/components/mobile-card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Bell, Mail, MessageSquare, ThumbsUp, Edit, Award, Flame, FileText } from "lucide-react"
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
 import { getNotificationPreferences, updateNotificationPreferences } from "@/lib/db-actions"
 
 export default async function NotificationSettingsPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -34,7 +34,7 @@ export default async function NotificationSettingsPage() {
 
   async function updatePreference(field: string, value: boolean) {
     "use server"
-    const supabase = await createClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

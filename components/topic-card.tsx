@@ -1,4 +1,4 @@
-"use client"
+//"use client"
 
 import { MobileCard } from "./mobile-card"
 import type { LucideIcon } from "lucide-react"

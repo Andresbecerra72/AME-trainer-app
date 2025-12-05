@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { AnswerButton } from "@/components/answer-button"
 import { PrimaryButton } from "@/components/primary-button"
@@ -8,14 +6,14 @@ import { Clock, Flag, ChevronLeft, ChevronRight } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Progress } from "@/components/ui/progress"
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export default async function ExamRunPage({
   searchParams,
 }: {
   searchParams: { topics?: string; count?: string; timer?: string }
 }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

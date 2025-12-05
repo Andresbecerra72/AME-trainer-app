@@ -5,13 +5,13 @@ import { Switch } from "@/components/ui/switch"
 import { User, Globe, Moon, Bell, LogOut, ChevronRight, Shield, Folder } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
 import Link from "next/link"
 
 export default async function SettingsPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
