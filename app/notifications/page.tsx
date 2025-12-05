@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
@@ -7,41 +6,23 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { BottomNav } from "@/components/bottom-nav"
 import { EmptyState } from "@/components/empty-state"
+import { getSession } from "@/features/auth/services/getSession"
+import { getUserNotifications } from "@/features/notifications/services/notifications.server"
+import { markAllNotificationsAsRead } from "@/features/notifications/services/notifications.api"
 
 export default async function NotificationsPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  const { user, profile } = await getSession()
+ 
   if (!user) {
     redirect("/auth/login")
   }
 
   // Fetch notifications
-  const { data: notifications } = await supabase
-    .from("notifications")
-    .select(`
-      *,
-      actor:users!notifications_actor_id_fkey(id, full_name, avatar_url),
-      question:questions(id, question_text)
-    `)
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(50)
+  const notifications = await getUserNotifications(user.id)
 
-  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single()
-
-  // Mark all as read
-  async function markAllRead() {
-    "use server"
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return
-
-    await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false)
+    // Mark all as read
+   async function markAllRead(user: any) {
+    await markAllNotificationsAsRead(user.id)
   }
 
   const unreadCount = notifications?.filter((n) => !n.is_read).length || 0
@@ -56,7 +37,7 @@ export default async function NotificationsPage() {
             {unreadCount > 0 ? `${unreadCount} unread` : "All caught up!"}
           </div>
           {unreadCount > 0 && (
-            <form action={markAllRead}>
+            <form action={() => markAllRead(user)}>
               <Button variant="ghost" size="sm">
                 Mark all read
               </Button>

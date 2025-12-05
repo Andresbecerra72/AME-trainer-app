@@ -7,3 +7,11 @@ export async function getUsernotifications(user_id: string) {
     .eq("user_id", user_id)
     .eq("is_read", false)
 }
+
+export async function markAllNotificationsAsRead(user_id: string) {
+  return await supabaseBrowserClient
+    .from("notifications")
+    .update({ is_read: true })
+    .eq("user_id", user_id)
+    .eq("is_read", false)
+}
