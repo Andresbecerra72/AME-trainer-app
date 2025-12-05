@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { MobileHeader } from "@/components/mobile-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,7 @@ import { redirect } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
 
 export default async function AddQuestionPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -26,7 +26,7 @@ export default async function AddQuestionPage() {
 
   async function handleSubmit(formData: FormData) {
     "use server"
-    const supabase = await createClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

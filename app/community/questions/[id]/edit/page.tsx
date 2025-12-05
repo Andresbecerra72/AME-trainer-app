@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import { notFound, redirect } from "next/navigation"
 import { createEditSuggestion, getTopics } from "@/lib/db-actions"
 
 export default async function SuggestEditPage({ params }: { params: { id: string } }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

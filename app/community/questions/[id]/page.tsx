@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
 import { Button } from "@/components/ui/button"
@@ -22,7 +22,7 @@ import {
 import { Label } from "@/components/ui/label"
 
 export default async function QuestionDetailPage({ params }: { params: { id: string } }) {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -77,7 +77,7 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
   async function addComment(formData: FormData) {
     "use server"
     const content = formData.get("content") as string
-    const supabase = await createClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -93,7 +93,7 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
 
   async function toggleBookmark() {
     "use server"
-    const supabase = await createClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -120,7 +120,7 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
     "use server"
     const reason = formData.get("reason") as string
     const description = formData.get("description") as string
-    const supabase = await createClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
