@@ -28,7 +28,7 @@ export default async function CollectionsPage() {
         <div className="flex justify-between items-center">
           <p className="text-sm text-muted-foreground">Organize your questions into collections</p>
           <Link href="/collections/create">
-            <PrimaryButton size="sm">
+            <PrimaryButton className="h-8 px-3">
               <Plus className="w-4 h-4 mr-2" />
               New
             </PrimaryButton>
@@ -40,7 +40,8 @@ export default async function CollectionsPage() {
             icon={Folder}
             title="No collections yet"
             description="Create your first collection to organize questions by topic or difficulty."
-            action={{ label: "Create Collection", href: "/collections/create" }}
+            actionLabel="Create Collection"
+            actionHref="/collections/create"
           />
         ) : (
           <div className="space-y-4">

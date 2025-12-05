@@ -51,13 +51,18 @@ export default async function MergeDuplicatesPage({ params }: { params: { id1: s
             <div>
               <p className="font-medium mb-2">{question1.question_text}</p>
               <div className="space-y-1 text-sm">
-                <p className="text-muted-foreground">Author: {question1.author?.username}</p>
+                <p className="text-muted-foreground">Author: {question1.author?.display_name}</p>
                 <p className="text-muted-foreground">Upvotes: {question1.upvotes}</p>
                 <p className="text-muted-foreground">Comments: {question1.comment_count}</p>
                 <p className="text-muted-foreground">Difficulty: {question1.difficulty}</p>
               </div>
               <div className="mt-3 space-y-1">
-                {question1.options.map((opt, idx) => (
+                {[
+                  question1.option_a,
+                  question1.option_b,
+                  question1.option_c,
+                  question1.option_d,
+                ].map((opt, idx) => (
                   <div
                     key={idx}
                     className={`text-sm p-2 rounded ${opt === question1.correct_answer ? "bg-green-500/10" : "bg-muted/50"}`}
@@ -81,13 +86,18 @@ export default async function MergeDuplicatesPage({ params }: { params: { id1: s
             <div>
               <p className="font-medium mb-2">{question2.question_text}</p>
               <div className="space-y-1 text-sm">
-                <p className="text-muted-foreground">Author: {question2.author?.username}</p>
+                <p className="text-muted-foreground">Author: {question2.author?.display_name}</p>
                 <p className="text-muted-foreground">Upvotes: {question2.upvotes}</p>
                 <p className="text-muted-foreground">Comments: {question2.comment_count}</p>
                 <p className="text-muted-foreground">Difficulty: {question2.difficulty}</p>
               </div>
               <div className="mt-3 space-y-1">
-                {question2.options.map((opt, idx) => (
+                {[
+                  question2.option_a,
+                  question2.option_b,
+                  question2.option_c,
+                  question2.option_d,
+                ].map((opt, idx) => (
                   <div
                     key={idx}
                     className={`text-sm p-2 rounded ${opt === question2.correct_answer ? "bg-green-500/10" : "bg-muted/50"}`}

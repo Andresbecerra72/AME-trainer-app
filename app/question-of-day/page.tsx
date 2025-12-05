@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
@@ -8,7 +8,7 @@ import { AnswerButton } from "@/components/answer-button"
 import { Calendar, Sparkles } from "lucide-react"
 
 export default async function QuestionOfDayPage() {
-  const supabase = await createClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -82,9 +82,9 @@ export default async function QuestionOfDayPage() {
                 return (
                   <AnswerButton
                     key={option}
-                    option={option}
-                    text={optionText}
-                    isCorrect={question.correct_answer === option}
+                    letter={option}
+                    text={String(optionText)}
+                    correct={question.correct_answer === option}
                   />
                 )
               })}

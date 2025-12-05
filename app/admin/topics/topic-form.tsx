@@ -41,8 +41,8 @@ export function TopicForm({ topic }: TopicFormProps) {
     setIsSubmitting(true)
 
     const result = topic
-      ? await updateTopic(topic.id, { name, description: description || null })
-      : await createTopic({ name, description: description || null })
+      ? await updateTopic(topic.id, { name, description: description || undefined })
+      : await createTopic({ name, description: description || undefined })
 
     if (result.success) {
       toast({

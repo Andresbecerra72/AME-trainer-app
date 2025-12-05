@@ -8,7 +8,7 @@ import { Star } from "lucide-react"
 import { rateExam } from "@/lib/db-actions"
 import { useToast } from "@/hooks/use-toast"
 
-export function RateExamForm({ examId, userId }: { examId: string; userId: string }) {
+export function RateExamForm({ examId }: { examId: string }) {
   const [rating, setRating] = useState(0)
   const [hoveredRating, setHoveredRating] = useState(0)
   const [comment, setComment] = useState("")
@@ -26,20 +26,20 @@ export function RateExamForm({ examId, userId }: { examId: string; userId: strin
     }
 
     setIsSubmitting(true)
-    const result = await rateExam(examId, userId, rating, comment || null)
-    setIsSubmitting(false)
-
-    if (result.success) {
+    try {
+      await rateExam(examId, rating, comment || undefined)
+      setIsSubmitting(false)
       toast({
         title: "Thank you!",
         description: "Your rating has been submitted",
       })
       setRating(0)
       setComment("")
-    } else {
+    } catch (err: any) {
+      setIsSubmitting(false)
       toast({
         title: "Error",
-        description: result.error || "Failed to submit rating",
+        description: err?.message || "Failed to submit rating",
         variant: "destructive",
       })
     }

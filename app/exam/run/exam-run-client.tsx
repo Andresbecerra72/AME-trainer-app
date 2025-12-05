@@ -7,9 +7,8 @@ import { SecondaryButton } from "@/components/secondary-button"
 import { Clock, Flag, ChevronLeft, ChevronRight } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Progress } from "@/components/ui/progress"
-import type { Database } from "@/lib/types"
 
-type Question = Database["public"]["Tables"]["questions"]["Row"]
+type Question = any
 
 export default function ExamRunClient({
   questions,

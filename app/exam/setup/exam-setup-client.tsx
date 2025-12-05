@@ -9,9 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRouter } from "next/navigation"
-import type { Database } from "@/lib/types"
 
-type Topic = Database["public"]["Tables"]["topics"]["Row"]
+type Topic = any
 
 export default function ExamSetupClient({ topics }: { topics: Topic[] }) {
   const router = useRouter()

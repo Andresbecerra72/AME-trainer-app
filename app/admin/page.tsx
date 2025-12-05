@@ -162,7 +162,7 @@ export default async function AdminDashboard() {
                 <Link key={question.id} href={`/admin/pending`}>
                   <div className="bg-card border border-orange-200 dark:border-orange-900 rounded-lg p-3 hover:shadow-md transition-shadow">
                     <p className="text-sm font-medium line-clamp-2 mb-1">{question.question_text}</p>
-                    <p className="text-xs text-muted-foreground">by {question.author?.full_name || "Anonymous"}</p>
+                    <p className="text-xs text-muted-foreground">by {question.author?.display_name || "Anonymous"}</p>
                   </div>
                 </Link>
               ))}
