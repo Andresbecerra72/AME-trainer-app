@@ -8,13 +8,21 @@ import { notFound } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
 import { BadgeDisplay } from "@/components/badge-display"
 import { Button } from "@/components/ui/button"
+import { getSession } from "@/features/auth/services/getSession"
+import { getUserQuestions } from "@/features/questions/services/question.api"
 
 export default async function ProfilePage({ params }: { params: { id: string } }) {
-  const [profile, userQuestions, userBadges] = await Promise.all([
-    getProfile(params.id),
-    getQuestions({ authorId: params.id }),
-    getUserBadges(params.id),
-  ])
+  const { id } = await params
+  console.log("ProfilePage params id:", id)
+  // const [profile, userQuestions, userBadges] = await Promise.all([
+  //   getProfile(params.id),
+  //   getQuestions({ authorId: params.id }),
+  //   getUserBadges(params.id),
+  // ])
+  const { profile } = await getSession()
+  const { data: userQuestions } = await getUserQuestions(id)
+  const userBadges  = await getUserBadges(id)
+   
 
   if (!profile) {
     notFound()
@@ -57,13 +65,13 @@ export default async function ProfilePage({ params }: { params: { id: string } }
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Link href={`/profile/${params.id}/activity`}>
+          <Link href={`/profile/${id}/activity`}>
             <Button variant="outline" className="w-full bg-transparent">
               <Activity className="h-4 w-4 mr-2" />
               View Activity
             </Button>
           </Link>
-          <Link href={`/profile/${params.id}/upvoted`}>
+          <Link href={`/profile/${id}/upvoted`}>
             <Button variant="outline" className="w-full bg-transparent">
               <ThumbsUp className="h-4 w-4 mr-2" />
               Upvoted
@@ -79,7 +87,7 @@ export default async function ProfilePage({ params }: { params: { id: string } }
             </h3>
             <div className="flex flex-wrap gap-2">
               {userBadges.map((ub: any) => (
-                <BadgeDisplay key={ub.id} badge={ub.badge} size="lg" />
+                <BadgeDisplay key={ub.id} badges={ub.badge} />
               ))}
             </div>
           </div>
@@ -95,19 +103,19 @@ export default async function ProfilePage({ params }: { params: { id: string } }
 
           <div className="bg-card border border-border rounded-lg p-4 text-center">
             <BookOpen className="h-6 w-6 mx-auto mb-2 text-accent" />
-            <p className="text-2xl font-bold">{userQuestions.length}</p>
+            <p className="text-2xl font-bold">{userQuestions?.length}</p>
             <p className="text-xs text-muted-foreground">Questions</p>
           </div>
 
           <div className="bg-card border border-border rounded-lg p-4 text-center">
             <Star className="h-6 w-6 mx-auto mb-2 text-yellow-500" />
-            <p className="text-2xl font-bold">{userQuestions.reduce((sum, q) => sum + q.upvotes, 0)}</p>
+            <p className="text-2xl font-bold">{(userQuestions || []).reduce((sum: number, q: any) => sum + (q.upvotes || 0), 0)}</p>
             <p className="text-xs text-muted-foreground">Upvotes</p>
           </div>
 
           <div className="bg-card border border-border rounded-lg p-4 text-center">
             <MessageCircle className="h-6 w-6 mx-auto mb-2 text-blue-500" />
-            <p className="text-2xl font-bold">{userQuestions.reduce((sum, q) => sum + q.comment_count, 0)}</p>
+            <p className="text-2xl font-bold">{(userQuestions || []).reduce((sum: number, q: any) => sum + (q.comment_count || 0), 0)}</p>
             <p className="text-xs text-muted-foreground">Discussions</p>
           </div>
         </div>
@@ -118,7 +126,7 @@ export default async function ProfilePage({ params }: { params: { id: string } }
             Recent Activity
           </h3>
           <div className="space-y-2">
-            {userQuestions.slice(0, 5).map((question) => (
+            {(userQuestions || []).slice(0, 5).map((question: any) => (
               <Link key={question.id} href={`/community/questions/${question.id}`}>
                 <div className="bg-card border border-border rounded-lg p-3 hover:shadow-md transition-shadow">
                   <div className="flex items-start gap-3">
@@ -152,11 +160,11 @@ export default async function ProfilePage({ params }: { params: { id: string } }
         {/* Recent Contributions */}
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">Recent Contributions</h3>
-          {userQuestions.length === 0 ? (
+          {(userQuestions || []).length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No questions submitted yet</p>
           ) : (
             <div className="space-y-3">
-              {userQuestions.slice(0, 5).map((question) => (
+              {(userQuestions || []).slice(0, 5).map((question:any) => (
                 <Link key={question.id} href={`/community/questions/${question.id}`}>
                   <div className="bg-card border border-border rounded-lg p-3 hover:shadow-md transition-shadow">
                     <p className="text-sm font-medium line-clamp-2 mb-2">{question.question_text}</p>

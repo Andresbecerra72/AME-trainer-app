@@ -1,15 +1,20 @@
-import { createClient } from "@/lib/supabase/server"
 import { MobileHeader } from "@/components/mobile-header"
 import { QuestionCardItem } from "@/components/question-card-item"
 import { EmptyState } from "@/components/empty-state"
 import { ThumbsUp } from "lucide-react"
 import { notFound } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
+import { getSession } from "@/features/auth/services/getSession"
+import { supabaseBrowserClient } from "@/lib/supabase/client"
 
 export default async function UpvotedPage({ params }: { params: { id: string } }) {
-  const supabase = await createClient()
+  const supabase =  supabaseBrowserClient
+  const { id } = await params
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", params.id).single()
+
+  //const { data: profile } = await supabase.from("profiles").select("*").eq("id", params.id).single()
+   const { user, profile } = await getSession()
+  
 
   if (!profile) notFound()
 
@@ -23,7 +28,7 @@ export default async function UpvotedPage({ params }: { params: { id: string } }
         profiles:author_id (username, avatar_url)
       )
     `)
-    .eq("user_id", params.id)
+    .eq("user_id", id)
     .eq("vote_type", "up")
     .order("created_at", { ascending: false })
 

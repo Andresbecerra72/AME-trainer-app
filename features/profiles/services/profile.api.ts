@@ -1,0 +1,73 @@
+"use server"
+
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+
+// GET PROFILE
+export async function getProfile() {
+  const supabase = await createSupabaseServerClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authenticated" }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single()
+
+  return { data, error }
+}
+
+// UPDATE PROFILE (name, bio, avatar_url)
+export async function updateProfile(updates: {
+  full_name?: string
+  bio?: string
+  avatar_url?: string
+}) {
+  const supabase = await createSupabaseServerClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authenticated" }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(updates)
+    .eq("id", user.id)
+    .select()
+    .single()
+
+  return { data, error }
+}
+
+// AVATAR UPLOAD
+export async function uploadAvatar(file: File) {
+  const supabase = await createSupabaseServerClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authenticated" }
+
+  const filePath = `avatars/${user.id}-${Date.now()}`
+
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(filePath, file)
+
+  if (uploadError) return { error: uploadError.message }
+
+  const { data: publicUrlData } = supabase.storage
+    .from("avatars")
+    .getPublicUrl(filePath)
+
+  const publicUrl = publicUrlData?.publicUrl
+
+  // Update profile with new avatar URL
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ avatar_url: publicUrl })
+    .eq("id", user.id)
+
+  return {
+    avatar_url: publicUrl,
+    error: updateError?.message,
+  }
+}

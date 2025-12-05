@@ -1,21 +1,19 @@
-import { createClient } from "@/lib/supabase-client"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import MobileHeader from "@/components/MobileHeader"
-import EmptyState from "@/components/EmptyState"
-import Activity from "@/icons/Activity"
-import MessageSquare from "@/icons/MessageSquare"
-import MessageCircle from "@/icons/MessageCircle"
-import ThumbsUp from "@/icons/ThumbsUp"
-import Edit3 from "@/icons/Edit3"
 import { formatDistanceToNow } from "date-fns"
-import BottomNav from "@/components/BottomNav"
+import { supabaseBrowserClient } from "@/lib/supabase/client"
+import { MobileHeader } from "@/components/mobile-header"
+import { EmptyState } from "@/components/empty-state"
+import { Activity, Edit3, MessageCircle, MessageSquare, ThumbsUp } from "lucide-react"
+import { BottomNav } from "@/components/bottom-nav"
 
 export default async function UserActivityPage({ params }: { params: { id: string } }) {
-  const supabase = await createClient()
+  const supabase = supabaseBrowserClient
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", params.id).single()
+   const { id } = await params
+
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", id).single()
 
   if (!profile) notFound()
 
@@ -24,22 +22,22 @@ export default async function UserActivityPage({ params }: { params: { id: strin
     supabase
       .from("questions")
       .select(`*, topics(name, code)`)
-      .eq("author_id", params.id)
+      .eq("author_id", id)
       .order("created_at", { ascending: false }),
     supabase
       .from("comments")
       .select(`*, questions(question_text)`)
-      .eq("user_id", params.id)
+      .eq("user_id", id)
       .order("created_at", { ascending: false }),
     supabase
       .from("votes")
       .select(`*, questions(question_text)`)
-      .eq("user_id", params.id)
+      .eq("user_id", id)
       .order("created_at", { ascending: false }),
     supabase
       .from("edit_suggestions")
       .select(`*, questions(question_text)`)
-      .eq("suggested_by", params.id)
+      .eq("suggested_by", id)
       .order("created_at", { ascending: false }),
   ])
 
