@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/db-actions"
+import { createBadge, assignBadge, getBadges } from "@/features/badges/services/badges.api"
 import { MobileHeader } from "@/components/mobile-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,40 +10,7 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { BottomNav } from "@/components/bottom-nav"
-
-async function assignBadge(formData: FormData) {
-  "use server"
-  const supabase = await createSupabaseServerClient()
-
-  const userId = formData.get("userId") as string
-  const badgeId = formData.get("badgeId") as string
-
-  await supabase.from("user_badges").insert({
-    user_id: userId,
-    badge_id: badgeId,
-  })
-
-  revalidatePath("/admin/badges")
-}
-
-async function createBadge(formData: FormData) {
-  "use server"
-  const supabase = await createSupabaseServerClient()
-
-  const name = formData.get("name") as string
-  const description = formData.get("description") as string
-  const icon = formData.get("icon") as string
-  const color = formData.get("color") as string
-
-  await supabase.from("badges").insert({
-    name,
-    description,
-    icon,
-    color,
-  })
-
-  revalidatePath("/admin/badges")
-}
+import { getUserProfiles } from "@/features/profiles/services/profile.api"
 
 export default async function BadgesManagementPage() {
   const currentUser = await getCurrentUser()
@@ -53,8 +21,8 @@ export default async function BadgesManagementPage() {
 
   const supabase = await createSupabaseServerClient()
 
-  const { data: badges } = await supabase.from("badges").select("*").order("name")
-  const { data: users } = await supabase.from("profiles").select("id, username, role").order("username")
+  const { data: badges } = await getBadges()
+  const { data: users } = await getUserProfiles()
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -118,7 +86,7 @@ export default async function BadgesManagementPage() {
                   <option value="">Select a user</option>
                   {users?.map((user) => (
                     <option key={user.id} value={user.id}>
-                      {user.username} ({user.role})
+                      {user.full_name} ({user.role})
                     </option>
                   ))}
                 </select>

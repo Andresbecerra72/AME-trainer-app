@@ -47,7 +47,7 @@ export async function getQuestions(filters?: {
   let query = supabase.from("questions").select(`
       *,
       topic:topics(*),
-      author:profiles(*)
+      author:profiles!questions_author_id_fkey(*)
     `)
 
   if (filters?.topicId) query = query.eq("topic_id", filters.topicId)

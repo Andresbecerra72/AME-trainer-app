@@ -71,3 +71,18 @@ export async function uploadAvatar(file: File) {
     error: updateError?.message,
   }
 }
+
+
+export async function getUserProfiles() {
+  const supabase = await createSupabaseServerClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authenticated" }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, role")
+    .order("full_name")
+
+  return { data, error }
+}
