@@ -7,18 +7,14 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { createAnnouncement } from "@/lib/db-actions"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function CreateAnnouncementPage() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, profile } = await getSession()
 
   if (!user) {
     redirect("/auth/login")
   }
-
-  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single()
 
   if (!profile || !["admin", "super_admin"].includes(profile.role)) {
     redirect("/dashboard")

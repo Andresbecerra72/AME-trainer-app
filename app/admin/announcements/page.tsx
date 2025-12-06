@@ -7,27 +7,30 @@ import { Badge } from "@/components/ui/badge"
 import { Megaphone, Plus } from "lucide-react"
 import Link from "next/link"
 import { BottomNav } from "@/components/bottom-nav"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function AnnouncementsPage() {
   const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+
+
+  const { user, profile } = await getSession()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single()
+  //const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single()
 
   if (!profile || !["admin", "super_admin"].includes(profile.role)) {
     redirect("/dashboard")
   }
 
-  const { data: announcements } = await supabase
+  const { data: announcements, error } = await supabase
     .from("announcements")
-    .select("*, creator:users!announcements_created_by_fkey(full_name)")
+    .select("*, creator:profiles!announcements_created_by_fkey(full_name)")
     .order("created_at", { ascending: false })
+
+  console.log("Get Announcements:", announcements, "Error:", error)
 
   const typeBadgeVariant: Record<string, any> = {
     info: "default",
