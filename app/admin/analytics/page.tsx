@@ -5,14 +5,19 @@ import { Users, FileQuestion, CheckCircle, Clock, XCircle, AlertTriangle, Messag
 import { redirect } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
 import Link from "next/link"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function PlatformAnalyticsPage() {
-  const currentUser = await getCurrentUser()
+  const { user, role } = await getSession()
 
-  if (!currentUser || currentUser.role !== "super_admin") {
-    redirect("/dashboard")
+  if (!user) {
+    redirect("/auth/login")
   }
 
+  if (!role || role !== "super_admin") {
+    redirect("/dashboard")
+  }
+  
   const analytics = await getPlatformAnalytics()
 
   return (
@@ -184,7 +189,7 @@ export default async function PlatformAnalyticsPage() {
         </div>
       </div>
 
-      <BottomNav userRole={currentUser.role} />
+      <BottomNav userRole={role} />
     </div>
   )
 }
