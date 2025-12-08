@@ -1,39 +1,26 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { getPendingQuestions, approveQuestion, rejectQuestion } from "@/features/questions/services/pendingQuestion.api"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
 import { CheckCircle, XCircle, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { BottomNav } from "@/components/bottom-nav"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function PendingQuestionsPage() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, profile } = await getSession()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  // Check if user is admin
-  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single()
-
   if (!profile || !["admin", "super_admin"].includes(profile.role)) {
     redirect("/dashboard")
   }
 
-  // Fetch pending questions
-  const { data: pendingQuestions } = await supabase
-    .from("questions")
-    .select(`
-      *,
-      author:users(id, full_name, avatar_url),
-      topic:topics(id, name, code)
-    `)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false })
+  // Fetch pending questions (business logic moved to feature API)
+  const pendingQuestions = await getPendingQuestions()
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -62,45 +49,6 @@ export default async function PendingQuestionsPage() {
 }
 
 function PendingQuestionCard({ question }: { question: any }) {
-  async function approveQuestion(formData: FormData) {
-    "use server"
-    const questionId = formData.get("questionId") as string
-    const supabase = await createSupabaseServerClient()
-
-    await supabase.from("questions").update({ status: "approved" }).eq("id", questionId)
-
-    // Create notification
-    await supabase.from("notifications").insert({
-      user_id: question.author_id,
-      type: "question_approved",
-      content: "Your question has been approved!",
-      link: `/community/questions/${questionId}`,
-    })
-  }
-
-  async function rejectQuestion(formData: FormData) {
-    "use server"
-    const questionId = formData.get("questionId") as string
-    const reason = formData.get("reason") as string
-    const supabase = await createSupabaseServerClient()
-
-    await supabase
-      .from("questions")
-      .update({
-        status: "rejected",
-        rejection_reason: reason,
-      })
-      .eq("id", questionId)
-
-    // Create notification
-    await supabase.from("notifications").insert({
-      user_id: question.author_id,
-      type: "question_rejected",
-      content: `Your question was rejected: ${reason}`,
-      link: `/community/questions/${questionId}`,
-    })
-  }
-
   return (
     <MobileCard>
       <div className="space-y-4">
