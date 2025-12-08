@@ -1,5 +1,5 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { getPendingReports, resolveReport, markInconsistentAndResolve } from "@/features/reports/services/reports.api"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
 import { AlertCircle, CheckCircle, Eye } from "lucide-react"
@@ -18,35 +18,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { markQuestionInconsistent } from "@/lib/db-actions"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function ReportsPage() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, profile } = await getSession()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  // Check if user is admin
-  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single()
-
   if (!profile || !["admin", "super_admin"].includes(profile.role)) {
     redirect("/dashboard")
   }
 
-  // Fetch pending reports
-  const { data: reports } = await supabase
-    .from("reports")
-    .select(`
-      *,
-      reporter:users!reports_reported_by_fkey(id, full_name),
-      question:questions(id, question_text, status)
-    `)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false })
+  // Fetch pending reports (business logic moved to feature API)
+  const reports = await getPendingReports()
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -75,19 +61,6 @@ export default async function ReportsPage() {
 }
 
 function ReportCard({ report }: { report: any }) {
-  async function resolveReport(formData: FormData) {
-    "use server"
-    const reportId = formData.get("reportId") as string
-    const action = formData.get("action") as string
-    const supabase = await createSupabaseServerClient()
-
-    if (action === "resolved") {
-      await supabase.from("reports").update({ status: "resolved" }).eq("id", reportId)
-    } else if (action === "dismissed") {
-      await supabase.from("reports").update({ status: "dismissed" }).eq("id", reportId)
-    }
-  }
-
   const getReasonBadge = (reason: string) => {
     const variants: Record<string, any> = {
       spam: "destructive",
@@ -149,16 +122,9 @@ function ReportCard({ report }: { report: any }) {
                   This will flag the question for review and warn users about potential issues.
                 </DialogDescription>
               </DialogHeader>
-              <form
-                action={async (formData: FormData) => {
-                  "use server"
-                  const notes = formData.get("notes") as string
-                  await markQuestionInconsistent(report.question_id, notes)
-                  await resolveReport(formData)
-                }}
-                className="space-y-4"
-              >
+              <form action={markInconsistentAndResolve} className="space-y-4">
                 <input type="hidden" name="reportId" value={report.id} />
+                <input type="hidden" name="questionId" value={report.question_id} />
                 <input type="hidden" name="action" value="resolved" />
                 <div className="space-y-2">
                   <Label htmlFor="notes">Inconsistency Notes</Label>
