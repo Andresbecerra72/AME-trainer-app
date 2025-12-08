@@ -1,33 +1,37 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
-import { Users, Shield, ShieldCheck, User } from "lucide-react"
+import { Users, Shield, ShieldCheck, User, Trash } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BottomNav } from "@/components/bottom-nav"
+import { getSession } from "@/features/auth/services/getSession"
+import { getAllUserProfiles } from "@/features/profiles/services/profile.server"
+import { deleteUser, updateUserRole } from "@/features/profiles/services/profile.api"
 
 export default async function UsersManagementPage() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, profile } = await getSession()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  // Check if user is super admin
-  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single()
-
   if (!profile || profile.role !== "super_admin") {
     redirect("/dashboard")
   }
 
-  // Fetch all users
-  const { data: users } = await supabase.from("users").select("*").order("created_at", { ascending: false })
+  // Fetch all users (moved to feature API)
+  const { data: users } = await getAllUserProfiles("*", "created_at", false)
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -57,15 +61,6 @@ export default async function UsersManagementPage() {
 }
 
 function UserCard({ user }: { user: any }) {
-  async function updateUserRole(formData: FormData) {
-    "use server"
-    const userId = formData.get("userId") as string
-    const newRole = formData.get("role") as string
-    const supabase = await createSupabaseServerClient()
-
-    await supabase.from("users").update({ role: newRole }).eq("id", userId)
-  }
-
   const getRoleIcon = () => {
     switch (user.role) {
       case "super_admin":
@@ -138,6 +133,28 @@ function UserCard({ user }: { user: any }) {
             <Button formAction={updateUserRole} size="sm">
               Update
             </Button>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="ml-2">
+                  <Trash className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete user</DialogTitle>
+                  <p className="text-sm text-muted-foreground mt-2">This will permanently remove the user's profile. This action cannot be undone.</p>
+                </DialogHeader>
+
+                <form action={deleteUser} className="mt-4">
+                  <input type="hidden" name="userId" value={user.id} />
+                  <DialogFooter>
+                    <Button type="submit" variant="destructive">Confirm delete</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         </form>
       </div>

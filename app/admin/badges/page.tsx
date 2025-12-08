@@ -10,7 +10,7 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { BottomNav } from "@/components/bottom-nav"
-import { getUserProfiles } from "@/features/profiles/services/profile.api"
+import { getAllUserProfiles } from "@/features/profiles/services/profile.server"
 
 export default async function BadgesManagementPage() {
   const currentUser = await getCurrentUser()
@@ -22,7 +22,7 @@ export default async function BadgesManagementPage() {
   const supabase = await createSupabaseServerClient()
 
   const { data: badges } = await getBadges()
-  const { data: users } = await getUserProfiles()
+  const { data: users } = await getAllUserProfiles()
 
   return (
     <div className="min-h-screen bg-background pb-24">

@@ -71,18 +71,19 @@ export async function uploadAvatar(file: File) {
     error: updateError?.message,
   }
 }
-
-
-export async function getUserProfiles() {
+// ADMIN: UPDATE USER ROLE
+export async function updateUserRole(formData: FormData) {
+  const userId = formData.get("userId") as string
+  const newRole = formData.get("role") as string
   const supabase = await createSupabaseServerClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: "Not authenticated" }
+  await supabase.from("profiles").update({ role: newRole }).eq("id", userId)
+}
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, full_name, role")
-    .order("full_name")
+export async function deleteUser(formData: FormData) {
+  const userId = formData.get("userId") as string
+  const supabase = await createSupabaseServerClient()
 
-  return { data, error }
+  // Remove the profile row. If you need to also remove auth user, use a server-side admin API.
+  await supabase.from("profiles").delete().eq("id", userId)
 }
