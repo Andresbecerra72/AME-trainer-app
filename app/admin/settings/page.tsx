@@ -1,49 +1,25 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
-import { getSystemSettings, updateSystemSetting } from "@/lib/db-actions"
+import { getSystemSettings } from "@/lib/db-actions"
+import { updateSetting } from "@/features/settings/services/settings.api"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function SystemSettingsPage() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, profile } = await getSession()
 
   if (!user) {
     redirect("/auth/login")
   }
-
-  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single()
 
   if (profile?.role !== "super_admin") {
     redirect("/dashboard")
   }
 
   const settings = await getSystemSettings()
-
-  async function updateSetting(formData: FormData) {
-    "use server"
-    const key = formData.get("key") as string
-    const value = formData.get("value") as string
-
-    const supabase = await createSupabaseServerClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return
-
-    try {
-      const parsedValue = JSON.parse(value)
-      await updateSystemSetting(key, parsedValue, user.id)
-    } catch (error) {
-      console.error("[v0] Error parsing setting value:", error)
-    }
-  }
 
   return (
     <div className="min-h-screen bg-background">
