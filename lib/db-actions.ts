@@ -588,7 +588,7 @@ export async function getEditSuggestions(questionId?: string) {
     .select(`
       *,
       question:questions(*),
-      suggested_by_user:profiles!suggested_by(*),
+      suggested_by_user:profiles!user_id(*),
       reviewed_by_user:profiles!reviewed_by(*)
     `)
     .order("created_at", { ascending: false })

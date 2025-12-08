@@ -7,6 +7,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { getEditSuggestions, reviewEditSuggestion } from "@/lib/db-actions"
 import { BottomNav } from "@/components/bottom-nav"
+import { getAllEditSuggestions } from "@/features/suggestions/services/suggestions.api"
 
 export default async function EditSuggestionsPage() {
   const supabase = await createSupabaseServerClient()
@@ -20,11 +21,12 @@ export default async function EditSuggestionsPage() {
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
 
-  if (profile?.role !== "admin" && profile?.role !== "super_admin") {
+  if (!profile || !["admin", "super_admin"].includes(profile.role)) {
     redirect("/dashboard")
   }
 
-  const editSuggestions = await getEditSuggestions()
+ // const editSuggestions = await getEditSuggestions()
+  const editSuggestions = await getAllEditSuggestions()
   const pendingSuggestions = editSuggestions.filter((s: any) => s.status === "pending")
 
   async function approveSuggestion(formData: FormData) {
