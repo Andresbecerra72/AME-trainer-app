@@ -9,13 +9,13 @@ import { BottomNav } from "@/components/bottom-nav"
 import { getSession } from "@/features/auth/services/getSession"
 
 export default async function PendingQuestionsPage() {
-  const { user, profile } = await getSession()
+  const { user, role } = await getSession()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  if (!profile || !["admin", "super_admin"].includes(profile.role)) {
+  if (!role || !["admin", "super_admin"].includes(role)) {
     redirect("/dashboard")
   }
 
@@ -43,7 +43,7 @@ export default async function PendingQuestionsPage() {
         )}
       </div>
 
-      <BottomNav userRole={profile.role} />
+      <BottomNav userRole={role} />
     </div>
   )
 }

@@ -1,10 +1,11 @@
-import { getCurrentUser, getQuestion, mergeQuestions } from "@/lib/db-actions"
+import { getQuestion, mergeQuestions } from "@/lib/db-actions"
 import { MobileHeader } from "@/components/mobile-header"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
+import { getSession } from "@/features/auth/services/getSession"
 
 async function handleMerge(sourceId: string, targetId: string) {
   "use server"
@@ -14,9 +15,13 @@ async function handleMerge(sourceId: string, targetId: string) {
 }
 
 export default async function MergeDuplicatesPage({ params }: { params: { id1: string; id2: string } }) {
-  const currentUser = await getCurrentUser()
+ const { user, role } = await getSession()
+    
+  if (!user) {
+    redirect("/auth/login")
+  }
 
-  if (!currentUser || currentUser.role === "user") {
+  if (!role || !["admin", "super_admin"].includes(role)) {
     redirect("/dashboard")
   }
 

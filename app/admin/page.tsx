@@ -1,4 +1,4 @@
-import { getCurrentUser, getAdminStats, getQuestions, getReports } from "@/lib/db-actions"
+import { getAdminStats, getQuestions, getReports } from "@/lib/db-actions"
 import { MobileHeader } from "@/components/mobile-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -6,14 +6,19 @@ import { Users, FileQuestion, AlertTriangle, GitMerge, Award, Settings, Megaphon
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function AdminDashboard() {
-  const currentUser = await getCurrentUser()
+const { user, role } = await getSession()
 
-  if (!currentUser || currentUser.role === "user") {
-    redirect("/dashboard")
+  if (!user) {
+    redirect("/auth/login")
   }
 
+  if (!role || !["admin", "super_admin"].includes(role)) {
+    redirect("/dashboard")
+  }
+ 
   const [stats, pendingQuestions, pendingReports] = await Promise.all([
     getAdminStats(),
     getQuestions({ status: "pending", limit: 5 }),
@@ -28,7 +33,7 @@ export default async function AdminDashboard() {
         {/* Role Badge */}
         <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-lg p-4 text-center">
           <p className="text-sm font-medium">Logged in as</p>
-          <p className="text-2xl font-bold capitalize">{currentUser.role}</p>
+          <p className="text-2xl font-bold capitalize">{role}</p>
         </div>
 
         {/* Stats Grid */}
@@ -122,7 +127,7 @@ export default async function AdminDashboard() {
                 Announcements
               </Button>
             </Link>
-            {currentUser.role === "super_admin" && (
+            {role === "super_admin" && (
               <>
                 <Link href="/admin/topics">
                   <Button variant="outline" className="w-full justify-start bg-transparent">
@@ -171,7 +176,7 @@ export default async function AdminDashboard() {
         )}
       </div>
 
-      <BottomNav userRole={currentUser.role} />
+      <BottomNav userRole={role} />
     </div>
   )
 }

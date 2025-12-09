@@ -1,4 +1,3 @@
-import { getCurrentUser } from "@/lib/db-actions"
 import { createBadge, assignBadge, getBadges } from "@/features/badges/services/badges.api"
 import { MobileHeader } from "@/components/mobile-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,19 +6,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Award } from "lucide-react"
 import { redirect } from "next/navigation"
-import { revalidatePath } from "next/cache"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { BottomNav } from "@/components/bottom-nav"
 import { getAllUserProfiles } from "@/features/profiles/services/profile.server"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function BadgesManagementPage() {
-  const currentUser = await getCurrentUser()
-
-  if (!currentUser || currentUser.role === "user") {
-    redirect("/dashboard")
+  const { user, role } = await getSession()
+  
+  if (!user) {
+    redirect("/auth/login")
   }
 
-  const supabase = await createSupabaseServerClient()
+  if (!role || !["admin", "super_admin"].includes(role)) {
+    redirect("/dashboard")
+  }
 
   const { data: badges } = await getBadges()
   const { data: users } = await getAllUserProfiles()
@@ -140,7 +140,7 @@ export default async function BadgesManagementPage() {
         </div>
       </div>
 
-      <BottomNav userRole={currentUser.role} />
+      <BottomNav userRole={role} />
     </div>
   )
 }

@@ -1,4 +1,3 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
@@ -10,13 +9,13 @@ import { createAnnouncement } from "@/lib/db-actions"
 import { getSession } from "@/features/auth/services/getSession"
 
 export default async function CreateAnnouncementPage() {
-  const { user, profile } = await getSession()
+  const { user, role } = await getSession()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  if (!profile || !["admin", "super_admin"].includes(profile.role)) {
+  if (!role || !["admin", "super_admin"].includes(role)) {
     redirect("/dashboard")
   }
 

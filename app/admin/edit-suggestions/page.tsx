@@ -1,31 +1,26 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { getEditSuggestions, reviewEditSuggestion } from "@/lib/db-actions"
+import { reviewEditSuggestion } from "@/lib/db-actions"
 import { BottomNav } from "@/components/bottom-nav"
 import { getAllEditSuggestions } from "@/features/suggestions/services/suggestions.api"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function EditSuggestionsPage() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  const { user, role } = await getSession()
+      
   if (!user) {
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
-
-  if (!profile || !["admin", "super_admin"].includes(profile.role)) {
+  if (!role || !["admin", "super_admin"].includes(role)) {
     redirect("/dashboard")
   }
 
- // const editSuggestions = await getEditSuggestions()
+
   const editSuggestions = await getAllEditSuggestions()
   const pendingSuggestions = editSuggestions.filter((s: any) => s.status === "pending")
 
@@ -103,7 +98,7 @@ export default async function EditSuggestionsPage() {
         )}
       </div>
 
-      <BottomNav userRole={profile?.role || "user"} />
+      <BottomNav userRole={role || "user"} />
     </div>
   )
 }

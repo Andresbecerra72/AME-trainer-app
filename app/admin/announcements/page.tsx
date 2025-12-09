@@ -13,15 +13,13 @@ export default async function AnnouncementsPage() {
   const supabase = await createSupabaseServerClient()
 
 
-  const { user, profile } = await getSession()
+  const { user, role } = await getSession()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  //const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single()
-
-  if (!profile || !["admin", "super_admin"].includes(profile.role)) {
+  if (!role || !["admin", "super_admin"].includes(role)) {
     redirect("/dashboard")
   }
 
@@ -93,7 +91,7 @@ export default async function AnnouncementsPage() {
         )}
       </div>
 
-      <BottomNav userRole={profile.role} />
+      <BottomNav userRole={role} />
     </div>
   )
 }

@@ -9,13 +9,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { getSession } from "@/features/auth/services/getSession"
 
 export default async function SystemSettingsPage() {
-  const { user, profile } = await getSession()
+  const { user, role } = await getSession()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  if (profile?.role !== "super_admin") {
+  if (role !== "super_admin") {
     redirect("/dashboard")
   }
 

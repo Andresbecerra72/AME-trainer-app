@@ -1,4 +1,4 @@
-import { getCurrentUser, getQuestions } from "@/lib/db-actions"
+import { getQuestions } from "@/lib/db-actions"
 import { MobileHeader } from "@/components/mobile-header"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -7,13 +7,18 @@ import { GitMerge } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function DuplicatesPage() {
-  const currentUser = await getCurrentUser()
-
-  if (!currentUser || currentUser.role === "user") {
-    redirect("/dashboard")
-  }
+  const { user, role } = await getSession()
+  
+    if (!user) {
+      redirect("/auth/login")
+    }
+  
+    if (!role || !["admin", "super_admin"].includes(role)) {
+      redirect("/dashboard")
+    }
 
   // Get all approved questions
   const questions = await getQuestions({ status: "approved" })
@@ -90,7 +95,7 @@ export default async function DuplicatesPage() {
         )}
       </div>
 
-      <BottomNav userRole={currentUser.role} />
+      <BottomNav userRole={role} />
     </div>
   )
 }
