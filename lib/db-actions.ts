@@ -412,7 +412,10 @@ export async function updateNotificationPreferences(userId: string, preferences:
 // Topic actions
 export async function getTopics() {
   const supabase = await createSupabaseServerClient()
-  const { data, error } = await supabase.from("topics").select("*").order("name")
+  const { data, error } = await supabase
+    .from("topics")
+    .select("*")
+    .order("name")
 
   if (error) {
     console.error("[v0] Error fetching topics:", error)

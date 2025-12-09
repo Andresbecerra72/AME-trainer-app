@@ -2,12 +2,17 @@ import { getCurrentUser } from "@/lib/db-actions"
 import { MobileHeader } from "@/components/mobile-header"
 import { redirect } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
-import { TopicForm } from "../topic-form"
+import { TopicForm } from "../../../../features/topics/components/topic-form"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function CreateTopicPage() {
-  const currentUser = await getCurrentUser()
+  const { user, role } = await getSession()
 
-  if (!currentUser || currentUser.role !== "super_admin") {
+  if (!user) {
+    redirect("/auth/login")
+  }
+
+  if (!role || role !== "super_admin") {
     redirect("/dashboard")
   }
 
@@ -19,7 +24,7 @@ export default async function CreateTopicPage() {
         <TopicForm />
       </div>
 
-      <BottomNav userRole={currentUser.role} />
+      <BottomNav userRole={role} />
     </div>
   )
 }

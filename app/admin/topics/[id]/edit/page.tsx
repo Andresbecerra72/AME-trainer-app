@@ -2,17 +2,24 @@ import { getCurrentUser, getTopics } from "@/lib/db-actions"
 import { MobileHeader } from "@/components/mobile-header"
 import { redirect, notFound } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
-import { TopicForm } from "../../topic-form"
+import { TopicForm } from "../../../../../features/topics/components/topic-form"
+import { getAllTopicsClient } from "@/features/topics/services/topic.api"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function EditTopicPage({ params }: { params: { id: string } }) {
-  const currentUser = await getCurrentUser()
+  const { id } = await params
+  const { user, role } = await getSession()
+  
+    if (!user) {
+      redirect("/auth/login")
+    }
+  
+    if (!role || role !== "super_admin") {
+      redirect("/dashboard")
+    }
 
-  if (!currentUser || currentUser.role !== "super_admin") {
-    redirect("/dashboard")
-  }
-
-  const topics = await getTopics()
-  const topic = topics.find((t) => t.id === params.id)
+  const topics = await getAllTopicsClient()
+  const topic = topics.find((t) => t.id === id)
 
   if (!topic) {
     notFound()
@@ -26,7 +33,7 @@ export default async function EditTopicPage({ params }: { params: { id: string }
         <TopicForm topic={topic} />
       </div>
 
-      <BottomNav userRole={currentUser.role} />
+      <BottomNav userRole={role} />
     </div>
   )
 }

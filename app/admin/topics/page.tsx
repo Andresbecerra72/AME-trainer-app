@@ -1,20 +1,25 @@
-import { getCurrentUser, getTopics } from "@/lib/db-actions"
 import { MobileHeader } from "@/components/mobile-header"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
-import { TopicList } from "./topic-list"
+import { getSession } from "@/features/auth/services/getSession"
+import { getAllTopicsClient } from "@/features/topics/services/topic.api"
+import { TopicList } from "@/features/topics/components/topic-list"
 
 export default async function TopicsManagementPage() {
-  const currentUser = await getCurrentUser()
+  const { user, role } = await getSession()
 
-  if (!currentUser || currentUser.role !== "super_admin") {
+  if (!user) {
+    redirect("/auth/login")
+  }
+
+  if (!role || role !== "super_admin") {
     redirect("/dashboard")
   }
 
-  const topics = await getTopics()
+  const topics = await getAllTopicsClient()
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -34,7 +39,7 @@ export default async function TopicsManagementPage() {
         <TopicList topics={topics} />
       </div>
 
-      <BottomNav userRole={currentUser.role} />
+      <BottomNav userRole={role} />
     </div>
   )
 }

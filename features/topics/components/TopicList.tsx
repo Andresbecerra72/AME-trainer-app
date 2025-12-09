@@ -6,7 +6,7 @@ export function TopicList({ topics }: { topics: any[] }) {
           key={t.id}
           className="p-4 border rounded-lg shadow-sm bg-white hover:bg-gray-50 transition"
         >
-          <h3 className="font-semibold">{t.title}</h3>
+          <h3 className="font-semibold">{t.name}</h3>
           <p className="text-sm text-muted-foreground">{t.description}</p>
         </div>
       ))}

@@ -6,6 +6,10 @@ export async function getAllTopicsClient() {
     .select("*")
     .order("name", { ascending: true });
 
-  if (error) throw error;
+ if (error) {
+    console.error("[v0] Error fetching topics:", error)
+    return []
+  }
   return data;
 }
+
