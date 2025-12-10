@@ -35,7 +35,13 @@ export function ExamSetupClient({ topics }: ExamSetupClientProps) {
       alert("Please select at least one topic")
       return
     }
-    router.push("/exam/run")
+    const params = new URLSearchParams()
+    params.set("topics", selectedTopics.join(","))
+    params.set("count", questionCount)
+    params.set("timer", timerEnabled.toString())
+    console.log("Starting exam with params:", params.toString())
+    router.push(`/exam/run?${params.toString()}`)
+    //router.push("/exam/run")
   }
 
   return (
