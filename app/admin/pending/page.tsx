@@ -60,7 +60,7 @@ function PendingQuestionCard({ question }: { question: any }) {
           </div>
           {question.topic && (
             <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium flex-shrink-0">
-              {question.topic.code}
+              {question.topic.name} - {question.topic.code}
             </span>
           )}
         </div>
@@ -87,27 +87,29 @@ function PendingQuestionCard({ question }: { question: any }) {
           </div>
         )}
 
-        <form className="flex gap-2">
-          <input type="hidden" name="questionId" value={question.id} />
-          <Button formAction={approveQuestion} className="flex-1" variant="default">
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Approve
-          </Button>
-          <Button formAction={rejectQuestion} className="flex-1" variant="destructive">
-            <XCircle className="w-4 h-4 mr-2" />
-            Reject
-          </Button>
-        </form>
+        <form method="post" className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <input type="hidden" name="questionId" value={question.id} />
+            <Button formAction={approveQuestion} className="flex-1" variant="default">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Approve
+            </Button>
+            <Button formAction={rejectQuestion} className="flex-1" variant="destructive">
+              <XCircle className="w-4 h-4 mr-2" />
+              Reject
+            </Button>
+          </div>
 
-        <details className="text-sm">
-          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Add rejection reason</summary>
-          <Textarea
-            name="reason"
-            placeholder="Explain why this question is being rejected..."
-            className="mt-2"
-            rows={3}
-          />
-        </details>
+          <details className="text-sm">
+            <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Add rejection reason</summary>
+            <Textarea
+              name="reason"
+              placeholder="Explain why this question is being rejected..."
+              className="mt-2"
+              rows={3}
+            />
+          </details>
+        </form>
       </div>
     </MobileCard>
   )

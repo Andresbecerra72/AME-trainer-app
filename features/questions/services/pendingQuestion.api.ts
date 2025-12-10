@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { revalidatePath } from "next/cache"
 
 export async function getPendingQuestions() {
   const supabase = await createSupabaseServerClient()
@@ -7,11 +8,12 @@ export async function getPendingQuestions() {
     .from("questions")
     .select(`
       *,
-      author:users(id, full_name, avatar_url),
-      topic:topics(id, name, code)
+     author:profiles!questions_author_id_fkey(id, full_name, avatar_url),
+     topic:topics!questions_topic_id_fkey(id, name, code)
     `)
     .eq("status", "pending")
     .order("created_at", { ascending: false })
+
 
   return data || []
 }
@@ -30,10 +32,17 @@ export async function approveQuestion(formData: FormData) {
   if (authorId) {
     await supabase.from("notifications").insert({
       user_id: authorId,
-      type: "question_approved",
-      content: "Your question has been approved!",
+      type: "comment",
+      message: "Your question has been approved!",
       link: `/community/questions/${questionId}`,
     })
+  }
+
+  // Revalidate the admin pending page so the server component fetches fresh data
+  try {
+    revalidatePath("/admin/pending")
+  } catch (err) {
+    console.error("Failed to revalidate /admin/pending:", err)
   }
 }
 
@@ -43,7 +52,8 @@ export async function rejectQuestion(formData: FormData) {
   const reason = (formData.get("reason") as string) || null
   const supabase = await createSupabaseServerClient()
 
-  await supabase
+
+  const { error } = await supabase
     .from("questions")
     .update({
       status: "rejected",
@@ -51,16 +61,26 @@ export async function rejectQuestion(formData: FormData) {
     })
     .eq("id", questionId)
 
+  console.log("Rejection error:", error)
   // Lookup author_id to notify the user
   const { data: q } = await supabase.from("questions").select("author_id").eq("id", questionId).single()
   const authorId = q?.author_id
 
   if (authorId) {
-    await supabase.from("notifications").insert({
+    const { error} = await supabase.from("notifications").insert({
       user_id: authorId,
-      type: "question_rejected",
-      content: `Your question was rejected: ${reason || "No reason provided"}`,
+      type: "comment",
+      title: "Question Rejected",
+      message: `Your question was rejected: ${reason || "No reason provided"}`,
       link: `/community/questions/${questionId}`,
     })
+      console.log("notifications error:", error)
+  }
+
+  // Revalidate the admin pending page so the server component fetches fresh data
+  try {
+    revalidatePath("/admin/pending")
+  } catch (err) {
+    console.error("Failed to revalidate /admin/pending:", err)
   }
 }
