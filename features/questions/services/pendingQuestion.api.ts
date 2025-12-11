@@ -32,7 +32,7 @@ export async function approveQuestion(formData: FormData) {
   if (authorId) {
     await supabase.from("notifications").insert({
       user_id: authorId,
-      type: "comment",
+      type: "question_approved",
       message: "Your question has been approved!",
       link: `/community/questions/${questionId}`,
     })
@@ -69,7 +69,7 @@ export async function rejectQuestion(formData: FormData) {
   if (authorId) {
     const { error} = await supabase.from("notifications").insert({
       user_id: authorId,
-      type: "comment",
+      type: "question_rejected",
       title: "Question Rejected",
       message: `Your question was rejected: ${reason || "No reason provided"}`,
       link: `/community/questions/${questionId}`,

@@ -20,9 +20,12 @@ export default async function NotificationsPage() {
   // Fetch notifications
   const notifications = await getUserNotifications(user.id)
 
-    // Mark all as read
-   async function markAllRead(user: any) {
-    await markAllNotificationsAsRead(user.id)
+  // Server Action used by the form to mark all notifications as read
+   async function markAllRead(formData: FormData) {
+    "use server"
+    const userId = formData.get("userId")
+    if (!userId || typeof userId !== "string") return
+    await markAllNotificationsAsRead(userId)
   }
 
   const unreadCount = notifications?.filter((n) => !n.is_read).length || 0
@@ -37,7 +40,8 @@ export default async function NotificationsPage() {
             {unreadCount > 0 ? `${unreadCount} unread` : "All caught up!"}
           </div>
           {unreadCount > 0 && (
-            <form action={() => markAllRead(user)}>
+            <form action={markAllRead}>
+              <input type="hidden" name="userId" value={user.id} />
               <Button variant="ghost" size="sm">
                 Mark all read
               </Button>
@@ -98,7 +102,7 @@ function NotificationCard({ notification }: { notification: any }) {
         <div className="flex gap-3">
           <div className="flex-shrink-0 mt-1">{getIcon()}</div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium leading-relaxed">{notification.content}</p>
+            <p className="text-sm font-medium leading-relaxed">{notification.message}</p>
             <p className="text-xs text-muted-foreground mt-1">{timeAgo(notification.created_at)}</p>
           </div>
           {!notification.is_read && <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-2" />}

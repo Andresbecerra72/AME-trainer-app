@@ -6,8 +6,7 @@ export async function getUserNotifications(user_id: string) {
      .from("notifications")
     .select(`
       *,
-      actor:users!notifications_actor_id_fkey(id, full_name, avatar_url),
-      question:questions(id, question_text)
+      actor:profiles!notifications_user_id_fkey(id, full_name, avatar_url)
     `)
     .eq("user_id", user_id)
     .order("created_at", { ascending: false })
@@ -17,4 +16,15 @@ export async function getUserNotifications(user_id: string) {
 
   return data ?? [];
 
+}
+
+export async function getUserUnreadNotifications(user_id: string) {
+  const supabase = await createSupabaseServerClient(); 
+  return await supabase
+    .from("notifications")
+    .select(`
+      *
+    `, { count: "exact", head: true })
+    .eq("user_id", user_id)
+    .eq("is_read", false)
 }

@@ -5,13 +5,8 @@ import Link from "next/link"
 import { getSession } from "@/features/auth/services/getSession";
 
 export default async function LandingPage() {
-  console.log("Rendering Landing Page...");
-  const { user, profile } = await getSession()
+  const { user } = await getSession()
  
-
-  console.log("LANDING PAGE PROFILE:", profile);
-  console.log("LANDING PAGE USER:", user);
-
   if (user) {
     redirect("/dashboard")
   }

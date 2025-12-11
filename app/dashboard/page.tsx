@@ -17,23 +17,14 @@ import { getUserComments } from "@/features/comments/services/comments.api"
 import { mainCards } from "./dashboard.mock"
 import { getRecentQuestions } from "@/features/questions/services/question.server"
 import { getUserBookmarks } from "@/features/bookmarks/services/bookmarks.api"
-import { getUsernotifications } from "@/features/notifications/services/notifications.api"
+import { getUserUnreadNotifications } from "@/features/notifications/services/notifications.server"
 
 export default async function DashboardPage() {
-  console.log(" AQUI Rendering Dashboard Page...");
-  const { user, profile } = await getSession()
-  // const supabase = await createSupabaseServerClient()
-  // const {
-  //   data: { user },
-  // } = await supabase.auth.getUser()
+  const { user, profile, role } = await getSession() 
 
   if (!user) {
     redirect("/auth/login")
   }
-
-  // Fetch user profile
- // const { data: profile, error } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()
-  console.log("DASHBOARD PROFILE:", profile);
   
   // Fetch user stats
   const { data: userQuestions } = await getUserQuestions(user.id)
@@ -41,7 +32,7 @@ export default async function DashboardPage() {
   const { data: bookmarks } = await getUserBookmarks(user.id)
 
   // Fetch unread notifications count
-  const { count: unreadNotifications } = await getUsernotifications(user.id)
+  const { count: unreadNotifications } = await getUserUnreadNotifications(user.id)
     
 
   // Fetch recent community questions
@@ -184,7 +175,7 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      <BottomNav userRole={profile?.role} unreadNotifications={unreadNotifications || 0} />
+      <BottomNav userRole={role} unreadNotifications={unreadNotifications || 0} />
     </div>
   )
 }
