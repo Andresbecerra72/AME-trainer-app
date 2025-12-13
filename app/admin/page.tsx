@@ -91,6 +91,12 @@ const { user, role } = await getSession()
         <div className="space-y-3">
           <h3 className="font-semibold">Quick Actions</h3>
           <div className="grid gap-2">
+            <Link href="/admin/questions">
+              <Button variant="outline" className="w-full justify-start bg-transparent">
+                <FileQuestion className="mr-2 h-4 w-4" />
+                Manage Questions
+              </Button>
+            </Link>
             <Link href="/admin/pending">
               <Button variant="outline" className="w-full justify-start bg-transparent">
                 <FileQuestion className="mr-2 h-4 w-4" />
