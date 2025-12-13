@@ -632,7 +632,7 @@ export async function reviewEditSuggestion(
     .update({
       status,
       reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
+      //reviewed_at: new Date().toISOString(),
     })
     .eq("id", suggestionId)
 
@@ -642,9 +642,16 @@ export async function reviewEditSuggestion(
   if (status === "approved" && applyChanges) {
     const { error: questionError } = await supabase
       .from("questions")
-      .update(suggestion.suggested_data)
+      .update({
+        question_text: suggestion.proposed_question_text, 
+        option_a: suggestion.proposed_answers.option_a,
+        option_b: suggestion.proposed_answers.option_b,
+        option_c: suggestion.proposed_answers.option_c,
+        option_d: suggestion.proposed_answers.option_d,
+        correct_answer: suggestion.proposed_correct_index,
+      })
       .eq("id", suggestion.question_id)
-
+      
     if (questionError) throw questionError
   }
 

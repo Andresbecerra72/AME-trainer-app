@@ -160,3 +160,112 @@ export async function deleteEditSuggestion(id: string) {
   revalidatePath("/questions");
   return { success: true };
 }
+
+// -----------------------------
+// Approve Suggestion with Changes (ADMIN)
+// -----------------------------
+
+export async function approveSuggestionWithChanges(suggestionId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData?.user) throw new Error("Not authenticated");
+
+  // Check role
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", authData.user.id)
+    .single();
+
+  if (!profile || !["admin", "super_admin"].includes(profile.role)) {
+    throw new Error("Unauthorized: admin access required");
+  }
+
+  // Get the suggestion
+  const { data: suggestion, error: fetchError } = await supabase
+    .from("edit_suggestions")
+    .select("*")
+    .eq("id", suggestionId)
+    .single();
+
+  if (fetchError || !suggestion) {
+    throw new Error("Suggestion not found");
+  }
+
+  // Update suggestion status
+  const { error: updateError } = await supabase
+    .from("edit_suggestions")
+    .update({
+      status: "approved",
+      reviewed_by: authData.user.id,
+    })
+    .eq("id", suggestionId);
+
+  if (updateError) {
+    console.error("[approveSuggestionWithChanges] Error updating suggestion:", updateError);
+    throw new Error(updateError.message);
+  }
+
+  // Apply changes to the question
+  const { error: questionError } = await supabase
+    .from("questions")
+    .update({
+      question_text: suggestion.proposed_question_text,
+      option_a: suggestion.proposed_answers.option_a,
+      option_b: suggestion.proposed_answers.option_b,
+      option_c: suggestion.proposed_answers.option_c,
+      option_d: suggestion.proposed_answers.option_d,
+      correct_option: suggestion.proposed_answers.correct_option,
+    })
+    .eq("id", suggestion.question_id);
+
+  if (questionError) {
+    console.error("[approveSuggestionWithChanges] Error updating question:", questionError);
+    throw new Error(questionError.message);
+  }
+
+  revalidatePath("/admin/edit-suggestions");
+  revalidatePath(`/community/questions/${suggestion.question_id}`);
+  
+  return { success: true };
+}
+
+// -----------------------------
+// Reject Suggestion (ADMIN)
+// -----------------------------
+
+export async function rejectSuggestionAction(suggestionId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData?.user) throw new Error("Not authenticated");
+
+  // Check role
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", authData.user.id)
+    .single();
+
+  if (!profile || !["admin", "super_admin"].includes(profile.role)) {
+    throw new Error("Unauthorized: admin access required");
+  }
+
+  const { error } = await supabase
+    .from("edit_suggestions")
+    .update({
+      status: "rejected",
+      reviewed_by: authData.user.id,
+    })
+    .eq("id", suggestionId);
+
+  if (error) {
+    console.error("[rejectSuggestionAction] Error:", error);
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin/edit-suggestions");
+  
+  return { success: true };
+}

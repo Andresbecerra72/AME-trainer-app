@@ -4,10 +4,25 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { reviewEditSuggestion } from "@/lib/db-actions"
 import { BottomNav } from "@/components/bottom-nav"
-import { getAllEditSuggestions } from "@/features/suggestions/services/suggestions.api"
+import { 
+  getAllEditSuggestions,
+  approveSuggestionWithChanges,
+  rejectSuggestionAction 
+} from "@/features/suggestions/services/suggestions.api"
 import { getSession } from "@/features/auth/services/getSession"
+
+async function approveSuggestion(formData: FormData) {
+  "use server"
+  const suggestionId = formData.get("suggestionId") as string
+  await approveSuggestionWithChanges(suggestionId)
+}
+
+async function rejectSuggestion(formData: FormData) {
+  "use server"
+  const suggestionId = formData.get("suggestionId") as string
+  await rejectSuggestionAction(suggestionId)
+}
 
 export default async function EditSuggestionsPage() {
   const { user, role } = await getSession()
@@ -20,21 +35,8 @@ export default async function EditSuggestionsPage() {
     redirect("/dashboard")
   }
 
-
   const editSuggestions = await getAllEditSuggestions()
   const pendingSuggestions = editSuggestions.filter((s: any) => s.status === "pending")
-
-  async function approveSuggestion(formData: FormData) {
-    "use server"
-    const suggestionId = formData.get("suggestionId") as string
-    await reviewEditSuggestion(suggestionId, "approved", true)
-  }
-
-  async function rejectSuggestion(formData: FormData) {
-    "use server"
-    const suggestionId = formData.get("suggestionId") as string
-    await reviewEditSuggestion(suggestionId, "rejected", false)
-  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -60,7 +62,7 @@ export default async function EditSuggestionsPage() {
                         href={`/community/questions/${suggestion.question_id}`}
                         className="font-medium hover:underline line-clamp-2"
                       >
-                        {suggestion.original_data.question_text}
+                        {suggestion.question_text}
                       </Link>
                       <p className="text-sm text-muted-foreground mt-1">
                         Suggested by {suggestion.suggested_by_user?.full_name || "Anonymous"}
