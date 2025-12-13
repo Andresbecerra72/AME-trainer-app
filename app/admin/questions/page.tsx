@@ -1,5 +1,5 @@
 import { MobileHeader } from "@/components/mobile-header"
-import { MobileCard } from "@/components/mobile-card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,7 @@ import {
   updateQuestionStatusAction 
 } from "@/features/questions/services/question.server"
 import { getSession } from "@/features/auth/services/getSession"
-import { Search, Trash2, CheckCircle, XCircle } from "lucide-react"
+import { Search, CheckCircle, XCircle, AlertCircle, Info, User, Calendar, BookOpen } from "lucide-react"
 import { revalidatePath } from "next/cache"
 import { getAllTopicsServer } from "@/features/topics/services/topic.server"
 import { EditButtonClient } from "@/features/questions/components/edit-button-client"
@@ -50,24 +50,49 @@ export default async function AdminQuestionsPage({ searchParams }: PageProps) {
     getAllTopicsServer(),
   ])
 
-  const getStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case "approved":
-        return "bg-green-500/10 text-green-600 border-green-500/20"
+        return { 
+          label: "Approved", 
+          className: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20"
+        }
       case "rejected":
-        return "bg-red-500/10 text-red-600 border-red-500/20"
+        return { 
+          label: "Rejected", 
+          className: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20"
+        }
       case "pending":
-        return "bg-orange-500/10 text-orange-600 border-orange-500/20"
+        return { 
+          label: "Pending", 
+          className: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20"
+        }
       default:
-        return "bg-gray-500/10 text-gray-600 border-gray-500/20"
+        return { 
+          label: "Unknown", 
+          className: "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20"
+        }
+    }
+  }
+
+  const getDifficultyConfig = (difficulty: string) => {
+    switch (difficulty) {
+      case "easy":
+        return { label: "Easy", className: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20" }
+      case "medium":
+        return { label: "Medium", className: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20" }
+      case "hard":
+        return { label: "Hard", className: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20" }
+      default:
+        return { label: "Unknown", className: "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20" }
     }
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-24 scroll-smooth">
       <MobileHeader title="Manage Questions" showBack />
 
-      <div className="p-4 space-y-4">
+      <div id="top" className="p-4 space-y-4">
         {/* Search and Filters */}
         <div className="space-y-3">
           <form className="relative">
@@ -122,99 +147,172 @@ export default async function AdminQuestionsPage({ searchParams }: PageProps) {
 
         {/* Questions List */}
         {questions.length === 0 ? (
-          <MobileCard className="text-center py-8">
-            <p className="text-muted-foreground">No questions found</p>
-          </MobileCard>
+          <Card>
+            <CardContent className="text-center py-8">
+              <p className="text-muted-foreground">No questions found</p>
+            </CardContent>
+          </Card>
         ) : (
           <div className="space-y-3">
-            {questions.map((question: any) => (
-              <MobileCard key={question.id}>
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <Link
-                        href={`/community/questions/${question.id}`}
-                        className="font-medium hover:underline line-clamp-2 block"
-                      >
-                        {question.question_text}
-                      </Link>
-                      <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <span>by {question.author?.full_name || question.author?.username || "Anonymous"}</span>
-                        {question.topic && (
-                          <>
-                            <span>•</span>
-                            <Badge variant="outline" className="text-xs">
-                              {question.topic.name}
+            {questions.map((question: any, index: number) => {
+              const statusConfig = getStatusConfig(question.status)
+              const difficultyConfig = getDifficultyConfig(question.difficulty)
+              const correctAnswerText = question[`option_${question.correct_answer.toLowerCase()}`]
+
+              return (
+                <Card 
+                  key={question.id} 
+                  id={`question-${index}`}
+                  className="overflow-hidden shadow-sm hover:shadow-md transition-all scroll-mt-20"
+                >
+                  <CardContent className="p-0">
+                    {/* Compact Header */}
+                    <div className="bg-gradient-to-r from-primary/5 to-transparent px-3 py-2 border-b">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        {/* Left: Author + Date */}
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <User className="w-3 h-3 text-primary" />
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
+                            <span className="truncate font-medium text-foreground">
+                              {question.author?.full_name || question.author?.username || "Anonymous"}
+                            </span>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="hidden sm:inline whitespace-nowrap">
+                              {new Date(question.created_at).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Right: Badges */}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <Badge className={`${statusConfig.className} border text-[10px] px-1.5 py-0 h-5`}>
+                            {statusConfig.label}
+                          </Badge>
+                          {question.topic && (
+                            <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 h-5">
+                              {question.topic.code}
                             </Badge>
-                          </>
-                        )}
-                        <span>•</span>
-                        <span>{new Date(question.created_at).toLocaleDateString()}</span>
+                          )}
+                          <Badge className={`${difficultyConfig.className} border text-[10px] px-1.5 py-0 h-5`}>
+                            {difficultyConfig.label}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                    <Badge 
-                      variant="outline" 
-                      className={getStatusColor(question.status)}
-                    >
-                      {question.status}
-                    </Badge>
-                  </div>
 
-                  {/* Actions */}
-                  <div className="flex flex-wrap gap-2">
-                    <EditButtonClient 
-                      question={{
-                        id: question.id,
-                        question_text: question.question_text,
-                        option_a: question.option_a,
-                        option_b: question.option_b,
-                        option_c: question.option_c,
-                        option_d: question.option_d,
-                        correct_answer: question.correct_answer,
-                        topic_id: question.topic_id,
-                        difficulty: question.difficulty,
-                        explanation: question.explanation,
-                      }}
-                      topics={topics}
-                    />
+                    {/* Content */}
+                    <div className="p-3 space-y-3">
+                      {/* Question */}
+                      <h3 className="font-semibold text-sm leading-snug line-clamp-2">
+                        {question.question_text}
+                      </h3>
 
-                    {question.status !== "approved" && (
-                      <form action={updateStatus} className="flex-1 min-w-[100px]">
-                        <input type="hidden" name="questionId" value={question.id} />
-                        <input type="hidden" name="status" value="approved" />
-                        <Button 
-                          type="submit" 
-                          size="sm" 
-                          variant="outline" 
-                          className="w-full bg-green-500/10 border-green-500/30 hover:bg-green-500/20"
-                        >
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Approve
-                        </Button>
-                      </form>
-                    )}
+                      {/* Correct Answer Only */}
+                      <div className="bg-green-50 dark:bg-green-950/30 border border-green-500 rounded-lg p-2.5">
+                        <div className="flex items-start gap-2">
+                          <div className="w-5 h-5 rounded bg-green-500 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+                            {question.correct_answer}
+                          </div>
+                          <p className="text-sm leading-relaxed flex-1">{correctAnswerText}</p>
+                          <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                        </div>
+                      </div>
 
-                    {question.status !== "rejected" && (
-                      <form action={updateStatus} className="flex-1 min-w-[100px]">
-                        <input type="hidden" name="questionId" value={question.id} />
-                        <input type="hidden" name="status" value="rejected" />
-                        <Button 
-                          type="submit" 
-                          size="sm" 
-                          variant="outline" 
-                          className="w-full bg-red-500/10 border-red-500/30 hover:bg-red-500/20"
-                        >
-                          <XCircle className="h-3 w-3 mr-1" />
-                          Reject
-                        </Button>
-                      </form>
-                    )}
+                      {/* Explanation */}
+                      {question.explanation && (
+                        <details className="group">
+                          <summary className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                            <Info className="w-3 h-3" />
+                            <span>View explanation</span>
+                          </summary>
+                          <div className="mt-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-2.5">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              {question.explanation}
+                            </p>
+                          </div>
+                        </details>
+                      )}
+                    </div>
 
-                    <DeleteButtonClient questionId={question.id} />
-                  </div>
-                </div>
-              </MobileCard>
-            ))}
+                    {/* Actions */}
+                    <div className="px-3 py-2 bg-muted/30 border-t">
+                      <div className="flex gap-1.5">
+                        <EditButtonClient 
+                          question={{
+                            id: question.id,
+                            question_text: question.question_text,
+                            option_a: question.option_a,
+                            option_b: question.option_b,
+                            option_c: question.option_c,
+                            option_d: question.option_d,
+                            correct_answer: question.correct_answer,
+                            topic_id: question.topic_id,
+                            difficulty: question.difficulty,
+                            explanation: question.explanation,
+                          }}
+                          topics={topics}
+                        />
+
+                        {question.status !== "approved" && (
+                          <form action={updateStatus} className="flex-1">
+                            <input type="hidden" name="questionId" value={question.id} />
+                            <input type="hidden" name="status" value="approved" />
+                            <Button 
+                              type="submit" 
+                              size="sm" 
+                              className="w-full bg-green-600 hover:bg-green-700 h-8 text-xs"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Approve
+                            </Button>
+                          </form>
+                        )}
+
+                        {question.status !== "rejected" && (
+                          <form action={updateStatus} className="flex-1">
+                            <input type="hidden" name="questionId" value={question.id} />
+                            <input type="hidden" name="status" value="rejected" />
+                            <Button 
+                              type="submit" 
+                              size="sm" 
+                              variant="destructive"
+                              className="w-full h-8 text-xs"
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Reject
+                            </Button>
+                          </form>
+                        )}
+
+                        <DeleteButtonClient questionId={question.id} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Scroll indicators - show every 10 items */}
+        {questions.length > 10 && (
+          <div className="sticky bottom-20 sm:bottom-4 left-0 right-0 flex justify-center gap-2 pointer-events-none z-10">
+            <div className="pointer-events-auto">
+              <a 
+                href="#top"
+                className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m18 15-6-6-6 6"/>
+                </svg>
+                <span className="text-sm font-medium">Back to Top</span>
+              </a>
+            </div>
           </div>
         )}
       </div>
