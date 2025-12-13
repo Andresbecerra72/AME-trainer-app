@@ -29,7 +29,7 @@ export default async function DashboardPage() {
   // Fetch user stats
   const { data: userQuestions } = await getUserQuestions(user.id)
   const { data: userComments } = await getUserComments(user.id)
-  const { data: bookmarks } = await getUserBookmarks(user.id)
+  const { count: bookmarks } = await getUserBookmarks(user.id)
 
   // Fetch unread notifications count
   const { count: unreadNotifications } = await getUserUnreadNotifications(user.id)

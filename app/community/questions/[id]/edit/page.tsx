@@ -8,18 +8,19 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { notFound, redirect } from "next/navigation"
 import { createEditSuggestion, getTopics } from "@/lib/db-actions"
+import { getSession } from "@/features/auth/services/getSession"
 
 export default async function SuggestEditPage({ params }: { params: { id: string } }) {
+  const { id } = await params
+
   const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, role } = await getSession()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  const { data: question } = await supabase.from("questions").select("*").eq("id", params.id).single()
+  const { data: question } = await supabase.from("questions").select("*").eq("id", id).single()
 
   if (!question) {
     notFound()
@@ -29,41 +30,50 @@ export default async function SuggestEditPage({ params }: { params: { id: string
 
   async function submitEditSuggestion(formData: FormData) {
     "use server"
-
-    const suggestedData = {
-      question_text: formData.get("question_text") as string,
+    const proposed_question_text = formData.get("question_text") as string
+    const proposed_answers = {
       option_a: formData.get("option_a") as string,
       option_b: formData.get("option_b") as string,
       option_c: formData.get("option_c") as string,
       option_d: formData.get("option_d") as string,
-      correct_answer: formData.get("correct_answer") as string,
-      explanation: formData.get("explanation") as string,
-      topic_id: formData.get("topic_id") as string,
-      difficulty: formData.get("difficulty") as string,
     }
+    const proposed_correct_index = formData.get("correct_answer") as string
 
-    const originalData = {
-      question_text: question.question_text,
-      option_a: question.option_a,
-      option_b: question.option_b,
-      option_c: question.option_c,
-      option_d: question.option_d,
-      correct_answer: question.correct_answer,
-      explanation: question.explanation,
-      topic_id: question.topic_id,
-      difficulty: question.difficulty,
-    }
+    // const suggestedData = {
+    //   question_text: formData.get("question_text") as string,
+    //   option_a: formData.get("option_a") as string,
+    //   option_b: formData.get("option_b") as string,
+    //   option_c: formData.get("option_c") as string,
+    //   option_d: formData.get("option_d") as string,
+    //   correct_answer: formData.get("correct_answer") as string,
+    //   explanation: formData.get("explanation") as string,
+    //   topic_id: formData.get("topic_id") as string,
+    //   difficulty: formData.get("difficulty") as string,
+    // }
+
+    // const originalData = {
+    //   question_text: question.question_text,
+    //   option_a: question.option_a,
+    //   option_b: question.option_b,
+    //   option_c: question.option_c,
+    //   option_d: question.option_d,
+    //   correct_answer: question.correct_answer,
+    //   explanation: question.explanation,
+    //   topic_id: question.topic_id,
+    //   difficulty: question.difficulty,
+    // }
 
     const reason = formData.get("reason") as string
 
-    await createEditSuggestion({
-      questionId: params.id,
-      originalData,
-      suggestedData,
+    await createEditSuggestion(
+      id,
+      proposed_question_text,
+      proposed_answers,
+      proposed_correct_index,
       reason,
-    })
+    )
 
-    redirect(`/community/questions/${params.id}`)
+    redirect(`/community/questions/${id}`)
   }
 
   return (
@@ -165,7 +175,7 @@ export default async function SuggestEditPage({ params }: { params: { id: string
                 Submit Suggestion
               </Button>
               <Button type="button" variant="outline" className="flex-1 bg-transparent" asChild>
-                <a href={`/community/questions/${params.id}`}>Cancel</a>
+                <a href={`/community/questions/${id}`}>Cancel</a>
               </Button>
             </div>
           </form>

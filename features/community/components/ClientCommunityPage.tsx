@@ -15,6 +15,7 @@ interface ClientCommunityPageProps {
   initialTopic: string
   initialDifficulty: string
   initialSort: string
+  initialTopics?: Array<{ id: string; name: string; code?: string }>
 }
 
 export function ClientCommunityPage({
@@ -22,6 +23,7 @@ export function ClientCommunityPage({
   initialTopic,
   initialDifficulty,
   initialSort,
+  initialTopics = [],
 }: ClientCommunityPageProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -79,8 +81,12 @@ export function ClientCommunityPage({
                 <SelectValue placeholder="Topic" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Topics</SelectItem>
-                {/* Topics will be populated from server if needed */}
+                  <SelectItem value="all">All Topics</SelectItem>
+                  {initialTopics.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
 

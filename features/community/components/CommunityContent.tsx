@@ -1,10 +1,7 @@
-import { getCurrentUser } from "@/features/auth/services/auth.server"
 import { supabaseBrowserClient } from "@/lib/supabase/client"
 import { EmptyState } from "@/components/empty-state"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { MessageCircle, Plus } from "lucide-react"
-import { BottomNav } from "@/components/bottom-nav"
 
 interface CommunityContentProps {
   search?: string
@@ -19,28 +16,15 @@ export async function CommunityContent({
   difficulty = "all",
   sort = "recent",
 }: CommunityContentProps) {
-  const {
-    data: { user },
-  } = await getCurrentUser()
-  let userRole: "user" | "admin" | "super_admin" = "user"
-
-  if (user) {
-    const { data: profile } = await supabaseBrowserClient
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single()
-    userRole = profile?.role || "user"
-  }
-
+  
   // Fetch questions with filters
   let query = supabaseBrowserClient
     .from("questions")
     .select(
       `
       *,
-      author:users(id, full_name, avatar_url),
-      topic:topics(id, name, code)
+      author:profiles!questions_author_id_fkey(id, full_name, avatar_url),
+      topic:topics!questions_topic_id_fkey(id, name, code)
     `
     )
     .eq("status", "approved")
