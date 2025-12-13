@@ -10,15 +10,10 @@ import { BadgeDisplay } from "@/components/badge-display"
 import { Button } from "@/components/ui/button"
 import { getSession } from "@/features/auth/services/getSession"
 import { getUserQuestions } from "@/features/questions/services/question.api"
+import { LogoutButton } from "@/features/auth/components/logout-button"
 
 export default async function ProfilePage({ params }: { params: { id: string } }) {
   const { id } = await params
-  console.log("ProfilePage params id:", id)
-  // const [profile, userQuestions, userBadges] = await Promise.all([
-  //   getProfile(params.id),
-  //   getQuestions({ authorId: params.id }),
-  //   getUserBadges(params.id),
-  // ])
   const { profile } = await getSession()
   const { data: userQuestions } = await getUserQuestions(id)
   const userBadges  = await getUserBadges(id)
@@ -78,6 +73,8 @@ export default async function ProfilePage({ params }: { params: { id: string } }
             </Button>
           </Link>
         </div>
+
+        <LogoutButton />
 
         {userBadges.length > 0 && (
           <div className="space-y-3">
