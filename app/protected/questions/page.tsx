@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 
-export default function TopicQuestionsPage({ params }: { params: { slug: string } }) {
+export default async function TopicQuestionsPage({ params }: { params: { id: string } }) {
+  const { id } = await params;
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -23,16 +24,16 @@ export default function TopicQuestionsPage({ params }: { params: { slug: string 
   // Load questions for this topic (real data)
   useEffect(() => {
     loadQuestions();
-  }, [params.slug]);
+  }, [id]);
 
   const loadQuestions = async () => {
     setLoading(true);
 
-    // 1. First get topic_id from slug
+    // 1. First get topic_id from id
     const { data: topicData } = await supabaseBrowserClient
       .from("topics")
       .select("id")
-      .eq("slug", params.slug)
+      .eq("id", id)
       .single();
 
     if (!topicData) {

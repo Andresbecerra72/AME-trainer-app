@@ -5,22 +5,21 @@ import { Button } from "@/components/ui/button"
 import { QuestionCardItem } from "@/components/question-card-item"
 import { BottomNav } from "@/components/bottom-nav"
 import { supabaseBrowserClient } from "@/lib/supabase/client"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export default async function TopicQuestionsPage({
   params,
   searchParams,
-}: { params: { slug: string }; searchParams: { search?: string; filter?: string } }) {
-  const { slug } = await params
+}: { params: { id: string }; searchParams: { search?: string; filter?: string } }) {
+  const { id } = await params
   const { search, filter } = await searchParams
-  console.log("TopicsQuestionsPage params", slug)
-  console.log("TopicsQuestionsPage searchParams", search, filter)
-
-  const supabase = supabaseBrowserClient
+  
+  const supabase = await createSupabaseServerClient()
   const searchQuery = search || ""
   const filterQuery = filter || "all"
 
-  // Get topic by slug
-  const { data: topic } = await supabase.from("topics").select("*").eq("name", slug).single()
+  // Get topic by id
+  const { data: topic } = await supabase.from("topics").select("*").eq("id", id).single()
 
   console.log("Fetched topic:", topic)
 
@@ -31,7 +30,9 @@ export default async function TopicQuestionsPage({
   // Build query
   let query = supabase
     .from("questions")
-    .select("*, topic:topics(*), author:profiles(*)")
+    .select(`*,
+       topic:topics!questions_topic_id_fkey(*), 
+       author:profiles!questions_author_id_fkey(*)`)
     .eq("topic_id", topic.id)
     .eq("status", "approved")
 
@@ -61,13 +62,13 @@ export default async function TopicQuestionsPage({
         {/* Filter Buttons */}
         <div className="flex gap-2">
           <Button variant={filterQuery === "all" ? "default" : "outline"} size="sm" asChild className="flex-1">
-            <a href={`/topics/${slug}?filter=all`}>All</a>
+            <a href={`/topics/${id}?filter=all`}>All</a>
           </Button>
           <Button variant={filterQuery === "answered" ? "default" : "outline"} size="sm" asChild className="flex-1">
-            <a href={`/topics/${slug}?filter=answered`}>Answered</a>
+            <a href={`/topics/${id}?filter=answered`}>Answered</a>
           </Button>
           <Button variant={filterQuery === "unanswered" ? "default" : "outline"} size="sm" asChild className="flex-1">
-            <a href={`/topics/${slug}?filter=unanswered`}>Unanswered</a>
+            <a href={`/topics/${id}?filter=unanswered`}>Unanswered</a>
           </Button>
         </div>
 

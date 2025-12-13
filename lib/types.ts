@@ -1,7 +1,7 @@
 export interface Topic {
   id: string
   title: string
-  slug: string
+  code: string
   progress: number
   questionsCount: number
   icon: string

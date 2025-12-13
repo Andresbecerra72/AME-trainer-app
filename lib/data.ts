@@ -4,7 +4,7 @@ export const topics: Topic[] = [
   {
     id: "1",
     title: "Standard Practices",
-    slug: "standard-practices",
+    code: "standard-practices",
     progress: 65,
     questionsCount: 120,
     icon: "wrench",
@@ -12,7 +12,7 @@ export const topics: Topic[] = [
   {
     id: "2",
     title: "Airframe",
-    slug: "airframe",
+    code: "airframe",
     progress: 45,
     questionsCount: 250,
     icon: "plane",
@@ -20,7 +20,7 @@ export const topics: Topic[] = [
   {
     id: "3",
     title: "Powerplant",
-    slug: "powerplant",
+    code: "powerplant",
     progress: 30,
     questionsCount: 180,
     icon: "zap",
@@ -28,7 +28,7 @@ export const topics: Topic[] = [
   {
     id: "4",
     title: "Avionics (E)",
-    slug: "avionics",
+    code: "avionics",
     progress: 20,
     questionsCount: 150,
     icon: "cpu",
@@ -36,7 +36,7 @@ export const topics: Topic[] = [
   {
     id: "5",
     title: "Structures (S)",
-    slug: "structures",
+    code: "structures",
     progress: 55,
     questionsCount: 140,
     icon: "box",
@@ -44,7 +44,7 @@ export const topics: Topic[] = [
   {
     id: "6",
     title: "Regulations",
-    slug: "regulations",
+    code: "regulations",
     progress: 80,
     questionsCount: 90,
     icon: "book-open",

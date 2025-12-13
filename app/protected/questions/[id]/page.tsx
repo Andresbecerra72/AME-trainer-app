@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import Link from "next/link";
 
 export default async function ViewQuestionPage({ params }: { params: { id: string } }) {
+  const { id } = await params;  
   const supabase = await createSupabaseServerClient();
 
   // Fetch question with author & topic
@@ -15,10 +16,10 @@ export default async function ViewQuestionPage({ params }: { params: { id: strin
     .from("questions")
     .select(`
       *,
-      topic:topics(title, slug),
+      topic:topics(name, code),
       author:user_profiles(full_name, avatar_url, role)
     `)
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (error || !question) {

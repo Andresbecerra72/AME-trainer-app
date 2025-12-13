@@ -15,14 +15,9 @@ const iconMap = {
 }
 
 export default async function TopicsPage() {
-  //const supabase = await createSupabaseServerClient()
-
- // const { data: topics, error } = await supabase.from("topics").select("*, questions(count)").order("name")
+  
   const  topics = await getAllTopicsClient()
 
-  // if (error) {
-  //   console.error("Error fetching topics:", error)
-  // }
 
   const topicsWithProgress =
     topics?.map((topic) => {
@@ -30,7 +25,7 @@ export default async function TopicsPage() {
       return {
         id: topic.id,
         name: topic.name,
-        slug: topic.slug ,
+        code: topic.code ,
         icon: topic.icon || "book-open",
         progress: 0, // TODO: Calculate from user progress
         questionsCount: questionCount,
@@ -39,7 +34,7 @@ export default async function TopicsPage() {
       {
         id: "",
         name: "",
-        slug: "",
+        code: "",
         icon: "book-open",
         progress: 0, // TODO: Calculate from user progress
         questionsCount: 1,
@@ -59,7 +54,7 @@ export default async function TopicsPage() {
           topicsWithProgress.map((topic) => {
             const Icon = iconMap[topic.icon as keyof typeof iconMap] || BookOpen
             return (
-              <Link key={topic.id} href={`/topics/${topic.slug}`}>
+              <Link key={topic.id} href={`/topics/${topic.id}`}>
                 <TopicCard
                   title={topic.name}
                   icon={Icon}
