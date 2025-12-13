@@ -1,3 +1,5 @@
+"use server";
+
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function getAllTopicsServer() {
@@ -14,4 +16,21 @@ export async function getAllTopicsServer() {
   }
 
   return data ?? [];
+}
+
+export async function getTopicById(topicId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("topics")
+    .select("*")
+    .eq("id", topicId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching topic:", error);
+    return null;
+  }
+
+  return data;
 }

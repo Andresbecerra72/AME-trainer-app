@@ -69,3 +69,34 @@ export async function getQuestionById(id: string) {
 
   return data
 }
+
+export async function getTopicQuestions(
+  topicId: string,
+  options?: {
+    searchQuery?: string;
+    filter?: string;
+  }
+) {
+  const supabase = await createSupabaseServerClient();
+
+  let query = supabase
+    .from("questions")
+    .select(`*,
+       topic:topics!questions_topic_id_fkey(*), 
+       author:profiles!questions_author_id_fkey(*)`)
+    .eq("topic_id", topicId)
+    .eq("status", "approved");
+
+  if (options?.searchQuery) {
+    query = query.ilike("question_text", `%${options.searchQuery}%`);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching topic questions:", error);
+    return [];
+  }
+
+  return data ?? [];
+}
