@@ -54,3 +54,18 @@ export async function getRecentQuestions() {
 
   return data ?? [];
 }
+
+export async function getQuestionById(id: string) {
+  const supabase = await createSupabaseServerClient()
+  const { data } = await supabase
+    .from("questions")
+    .select(`
+      *,
+      author:profiles!questions_author_id_fkey(id, full_name, avatar_url),
+      topic:topics!questions_topic_id_fkey(id, name, code)
+    `)
+    .eq("id", id)
+    .single()
+
+  return data
+}

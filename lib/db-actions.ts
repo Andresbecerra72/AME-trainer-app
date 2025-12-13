@@ -559,12 +559,13 @@ export async function getUserStats(userId: string) {
 }
 
 // Edit suggestion actions
-export async function createEditSuggestion(data: {
-  questionId: string
-  originalData: any
-  suggestedData: any
-  reason: string
-}) {
+export async function createEditSuggestion(
+   question_id: string,
+   proposed_question_text: string,
+   proposed_answers: any,
+   proposed_correct_index: string,
+   reason: string,
+) {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -572,11 +573,12 @@ export async function createEditSuggestion(data: {
   if (!user) throw new Error("Not authenticated")
 
   const { error } = await supabase.from("edit_suggestions").insert({
-    question_id: data.questionId,
-    suggested_by: user.id,
-    original_data: data.originalData,
-    suggested_data: data.suggestedData,
-    reason: data.reason,
+    question_id,
+    user_id: user.id,
+    proposed_question_text,
+    proposed_answers,
+    proposed_correct_index,
+    reason,
     status: "pending",
   })
 
