@@ -17,6 +17,8 @@ import { useRouter } from "next/navigation"
 import { createQuestion, getTopics } from "@/lib/db-actions"
 import { useToast } from "@/hooks/use-toast"
 import { BottomNav } from "@/components/bottom-nav"
+import { getSession } from "@/features/auth/services/getSession"
+import { UserRole } from "@/lib/types"
 
 export default function AddQuestionPage() {
   const router = useRouter()
@@ -24,6 +26,7 @@ export default function AddQuestionPage() {
   const [mode, setMode] = useState("Manual")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [topics, setTopics] = useState<any[]>([])
+  const [role, setRole] = useState<UserRole>()
 
   const [question, setQuestion] = useState("")
   const [optionA, setOptionA] = useState("")
@@ -38,7 +41,13 @@ export default function AddQuestionPage() {
 
   useEffect(() => {
     loadTopics()
+    loadSession()
   }, [])
+
+  const loadSession = async () => {
+    const { role: userRole } = await getSession()
+    setRole(userRole)
+  }
 
   const loadTopics = async () => {
     const data = await getTopics()
@@ -266,7 +275,7 @@ export default function AddQuestionPage() {
         )}
       </div>
 
-      <BottomNav />
+      <BottomNav userRole={role}/>
     </div>
   )
 }
