@@ -2,6 +2,7 @@ import { Suspense } from "react"
 import { CommunityContent } from "@/features/community/components/CommunityContent"
 import { ClientCommunityPage } from "@/features/community/components/ClientCommunityPage"
 import { getTopics } from "@/lib/db-actions"
+import { getSession } from "@/features/auth/services/getSession"
 
 type SearchParamsType = Promise<{ [key: string]: string | string[] | undefined }>
 
@@ -16,6 +17,7 @@ export default async function CommunityPage({
   const difficulty = typeof params.difficulty === "string" ? params.difficulty : "all"
   const sort = typeof params.sort === "string" ? params.sort : "recent"
   const topics = await getTopics()
+  const { role } = await getSession()
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -25,6 +27,7 @@ export default async function CommunityPage({
         initialDifficulty={difficulty}
         initialSort={sort}
         initialTopics={topics}
+        userRole={role}
       />
 
       <Suspense fallback={<div>Loading questions...</div>}>

@@ -9,21 +9,12 @@ import Link from "next/link"
 import { Textarea } from "@/components/ui/textarea"
 import { BottomNav } from "@/components/bottom-nav"
 import { ShareButton } from "@/components/share-button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { getSession } from "@/features/auth/services/getSession"
 import { getQuestionById } from "@/features/questions/services/question.server"
 import { createAddCommentHandler, getCommentsByQuestionId } from "@/features/comments/services/comments.server"
 import { createToggleBookmarkHandler, isBookmarkedByUser } from "@/features/bookmarks/services/bookmarks.server"
-import { createReportQuestionHandler } from "@/features/reports/services/reports.server"
+import { createReportQuestionHandler, hasUserReportedQuestion, getQuestionReportsCount } from "@/features/reports/services/reports.server"
+import { ReportDialog } from "@/features/reports/components/report-dialog"
 
 export default async function QuestionDetailPage({ params }: { params: { id: string } }) {
   const { id } = await params
@@ -37,9 +28,14 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
 
   // Check if user has bookmarked
   let isBookmarked = false
+  let hasReported = false
   if (user) {
     isBookmarked = await isBookmarkedByUser(user.id, id)
+    hasReported = await hasUserReportedQuestion(user.id, id)
   }
+
+  // Get reports count
+  const reportsCount = await getQuestionReportsCount(id)
 
   const isAuthor = user && question.author_id === user.id
   const canEdit = isAuthor || role === "admin" || role === "super_admin"
@@ -72,7 +68,7 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
                 </Link>
                 <p className="text-xs text-muted-foreground">{new Date(question.created_at).toLocaleDateString()}</p>
               </div>
-              <div className="flex gap-1">
+              <div className="flex flex-wrap gap-1">
                 {question.topic && (
                   <Badge variant="secondary" className="text-xs">
                     {question.topic.name} - {question.topic.code}
@@ -81,6 +77,12 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
                 <Badge variant="outline" className="text-xs capitalize">
                   {question.difficulty}
                 </Badge>
+                {reportsCount > 0 && (
+                  <Badge variant="outline" className="text-xs border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-950/30">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    {reportsCount} {reportsCount === 1 ? "Report" : "Reports"}
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -142,49 +144,7 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
                 variant="outline"
                 size="sm"
               />
-              {/* Report Dialog */}
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Flag className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Report Question</DialogTitle>
-                    <DialogDescription>
-                      Help us maintain quality by reporting issues with this question.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form action={reportQuestion} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="reason">Reason</Label>
-                      <select id="reason" name="reason" className="w-full p-2 border rounded-md bg-background" required>
-                        <option value="">Select a reason</option>
-                        <option value="incorrect">Incorrect Answer</option>
-                        <option value="duplicate">Duplicate Question</option>
-                        <option value="spam">Spam</option>
-                        <option value="inappropriate">Inappropriate Content</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description (Optional)</Label>
-                      <Textarea
-                        id="description"
-                        name="description"
-                        placeholder="Provide additional details..."
-                        rows={3}
-                      />
-                    </div>
-                    <DialogFooter>
-                      <Button type="submit" className="w-full">
-                        Submit Report
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <ReportDialog reportAction={reportQuestion} hasReported={hasReported} />
             </div>
 
             {/* Stats */}

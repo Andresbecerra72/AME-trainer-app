@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { UserRole } from "@/lib/types"
 
 interface ClientCommunityPageProps {
   initialSearch: string
@@ -16,6 +17,7 @@ interface ClientCommunityPageProps {
   initialDifficulty: string
   initialSort: string
   initialTopics?: Array<{ id: string; name: string; code?: string }>
+  userRole?: UserRole
 }
 
 export function ClientCommunityPage({
@@ -24,6 +26,7 @@ export function ClientCommunityPage({
   initialDifficulty,
   initialSort,
   initialTopics = [],
+  userRole,
 }: ClientCommunityPageProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -32,7 +35,6 @@ export function ClientCommunityPage({
   const [topic, setTopic] = useState(initialTopic)
   const [difficulty, setDifficulty] = useState(initialDifficulty)
   const [sortBy, setSortBy] = useState(initialSort)
-  const [userRole] = useState<"user" | "admin" | "super_admin">("user")
 
   const handleFilterChange = () => {
     const params = new URLSearchParams()
