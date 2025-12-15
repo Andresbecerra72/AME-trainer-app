@@ -1,21 +1,30 @@
+"use server"
+
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { NextResponse } from "next/server"
 
-export async function POST(request: Request) {
+interface DuplicateResult {
+  id: string
+  question_text: string
+  similarity: number
+}
+
+export async function checkQuestionDuplicates(questionText: string): Promise<DuplicateResult[]> {
   try {
-    const { questionText } = await request.json()
-
     if (!questionText || questionText.length < 20) {
-      return NextResponse.json({ duplicates: [] })
+      return []
     }
 
     const supabase = await createSupabaseServerClient()
 
     // Fetch all approved questions
-    const { data: questions } = await supabase.from("questions").select("id, question_text").eq("status", "approved")
+    const { data: questions, error } = await supabase
+      .from("questions")
+      .select("id, question_text")
+      .eq("status", "approved")
 
-    if (!questions) {
-      return NextResponse.json({ duplicates: [] })
+    if (error || !questions) {
+      console.error("Error fetching questions:", error)
+      return []
     }
 
     // Simple similarity check based on common words
@@ -23,6 +32,7 @@ export async function POST(request: Request) {
       .toLowerCase()
       .split(/\s+/)
       .filter((w: string) => w.length > 3)
+
     const duplicates = questions
       .map((q) => {
         const qWords = q.question_text.toLowerCase().split(/\s+/)
@@ -35,9 +45,9 @@ export async function POST(request: Request) {
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, 3)
 
-    return NextResponse.json({ duplicates })
+    return duplicates
   } catch (error) {
     console.error("Error checking duplicates:", error)
-    return NextResponse.json({ duplicates: [] })
+    return []
   }
 }

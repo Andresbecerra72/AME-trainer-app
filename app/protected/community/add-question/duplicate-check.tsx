@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AlertTriangle, CheckCircle } from "lucide-react"
 import Link from "next/link"
+import { checkQuestionDuplicates } from "@/features/questions/services/duplicates"
 
 interface DuplicateCheckProps {
   questionText: string
@@ -18,13 +19,8 @@ export function DuplicateCheck({ questionText }: DuplicateCheckProps) {
   async function checkForDuplicates() {
     setChecking(true)
     try {
-      const response = await fetch("/api/check-duplicates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionText }),
-      })
-      const data = await response.json()
-      setDuplicates(data.duplicates || [])
+      const results = await checkQuestionDuplicates(questionText)
+      setDuplicates(results)
       setChecked(true)
     } catch (error) {
       console.error("Error checking duplicates:", error)
