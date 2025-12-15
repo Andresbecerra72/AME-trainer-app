@@ -34,7 +34,7 @@ export default async function TopicQuestionsPage({ params, searchParams }: PageP
 
   return (
     <div className="min-h-screen bg-background pb-20">
-           <MobileHeaderBack title={topic.name}  backUrl="/public/topics" />
+           <MobileHeaderBack title={topic.name}  backUrl="/protected/topics" />
 
       <div className="p-6 space-y-4 max-w-2xl mx-auto">
         {/* Search Bar */}
@@ -52,13 +52,13 @@ export default async function TopicQuestionsPage({ params, searchParams }: PageP
         {/* Filter Buttons */}
         <div className="flex gap-2">
           <Button variant={filter === "all" ? "default" : "outline"} size="sm" asChild className="flex-1">
-            <a href={`/public/topics/${id}?filter=all`}>All</a>
+            <a href={`/protected/topics/${id}?filter=all`}>All</a>
           </Button>
           <Button variant={filter === "answered" ? "default" : "outline"} size="sm" asChild className="flex-1">
-            <a href={`/public/topics/${id}?filter=answered`}>Answered</a>
+            <a href={`/protected/topics/${id}?filter=answered`}>Answered</a>
           </Button>
           <Button variant={filter === "unanswered" ? "default" : "outline"} size="sm" asChild className="flex-1">
-            <a href={`/public/topics/${id}?filter=unanswered`}>Unanswered</a>
+            <a href={`/protected/topics/${id}?filter=unanswered`}>Unanswered</a>
           </Button>
         </div>
 

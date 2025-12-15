@@ -26,7 +26,7 @@ import {
       icon: BookOpen,
       color: "text-blue-600",
       bgColor: "bg-blue-50 dark:bg-blue-950/20",
-      path: "/public/topics",
+      path: "/protected/topics",
     },
     {
       title: "Community",
