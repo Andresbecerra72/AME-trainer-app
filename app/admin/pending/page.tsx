@@ -13,11 +13,11 @@ export default async function PendingQuestionsPage() {
   const { user, role } = await getSession()
 
   if (!user) {
-    redirect("/auth/login")
+    redirect("/public/auth/login")
   }
 
   if (!role || !["admin", "super_admin"].includes(role)) {
-    redirect("/dashboard")
+    redirect("/protected/dashboard")
   }
 
   // Fetch pending questions (business logic moved to feature API)
@@ -211,7 +211,7 @@ function PendingQuestionCard({ question }: { question: any }) {
 
             <details className="text-sm">
               <summary className="cursor-pointer text-muted-foreground hover:text-foreground py-2 px-3 rounded-md hover:bg-muted/50 transition-colors">
-                💬 Add rejection reason (optional)
+                ?? Add rejection reason (optional)
               </summary>
               <Textarea
                 name="reason"

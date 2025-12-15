@@ -91,7 +91,7 @@ export default function AddQuestionPage() {
         description: "Question submitted for review",
       });
 
-      router.push("/dashboard");
+      router.push("/protected/dashboard");
     } catch (error) {
       console.error(error);
       toast({

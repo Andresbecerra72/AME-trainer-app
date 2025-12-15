@@ -28,11 +28,11 @@ export default async function EditSuggestionsPage() {
   const { user, role } = await getSession()
       
   if (!user) {
-    redirect("/auth/login")
+    redirect("/public/auth/login")
   }
 
   if (!role || !["admin", "super_admin"].includes(role)) {
-    redirect("/dashboard")
+    redirect("/protected/dashboard")
   }
 
   const editSuggestions = await getAllEditSuggestions()
@@ -59,7 +59,7 @@ export default async function EditSuggestionsPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <Link
-                        href={`/community/questions/${suggestion.question_id}`}
+                        href={`/protected/community/questions/${suggestion.question_id}`}
                         className="font-medium hover:underline line-clamp-2"
                       >
                         {suggestion.question_text}

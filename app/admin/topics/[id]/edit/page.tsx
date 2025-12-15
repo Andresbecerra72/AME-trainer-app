@@ -11,11 +11,11 @@ export default async function EditTopicPage({ params }: { params: { id: string }
   const { user, role } = await getSession()
   
     if (!user) {
-      redirect("/auth/login")
+      redirect("/public/auth/login")
     }
   
     if (!role || role !== "super_admin") {
-      redirect("/dashboard")
+      redirect("/protected/dashboard")
     }
 
   const topics = await getAllTopicsClient()

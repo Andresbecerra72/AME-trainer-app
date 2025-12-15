@@ -33,7 +33,7 @@ export function QuestionCardItem({ question, showStatus = false }: QuestionCardI
   return (
     <Card
       className="p-4 hover:shadow-md transition-shadow cursor-pointer"
-      onClick={() => router.push(`/community/questions/${question.id}`)}
+      onClick={() => router.push(`/protected/community/questions/${question.id}`)}
     >
       <div className="flex gap-3">
         {/* Vote score */}

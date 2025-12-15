@@ -18,11 +18,11 @@ export default async function MergeDuplicatesPage({ params }: { params: { id1: s
  const { user, role } = await getSession()
     
   if (!user) {
-    redirect("/auth/login")
+    redirect("/public/auth/login")
   }
 
   if (!role || !["admin", "super_admin"].includes(role)) {
-    redirect("/dashboard")
+    redirect("/protected/dashboard")
   }
 
   const [question1, question2] = await Promise.all([getQuestion(params.id1), getQuestion(params.id2)])

@@ -73,7 +73,7 @@ export default function ExamRunClient({
   }
 
   const handleSubmit = () => {
-    router.push("/exam/results")
+    router.push("/protected/exam/results")
   }
 
   const question = questions[currentQuestion]
@@ -129,7 +129,7 @@ export default function ExamRunClient({
 
         <div className="text-center text-sm text-muted-foreground">
           {answeredCount} of {questions.length} questions answered
-          {flagged.size > 0 && ` • ${flagged.size} flagged`}
+          {flagged.size > 0 && `  ${flagged.size} flagged`}
         </div>
       </div>
 

@@ -34,7 +34,7 @@ export async function approveQuestion(formData: FormData) {
       user_id: authorId,
       type: "question_approved",
       message: "Your question has been approved!",
-      link: `/community/questions/${questionId}`,
+      link: `/protected/community/questions/${questionId}`,
     })
   }
 
@@ -72,7 +72,7 @@ export async function rejectQuestion(formData: FormData) {
       type: "question_rejected",
       title: "Question Rejected",
       message: `Your question was rejected: ${reason || "No reason provided"}`,
-      link: `/community/questions/${questionId}`,
+      link: `/protected/community/questions/${questionId}`,
     })
       console.log("notifications error:", error)
   }

@@ -12,11 +12,11 @@ export async function AuthGuard({ children, requiredRole }: AuthGuardProps) {
   const user = await getCurrentUser()
 
   if (!user) {
-    redirect("/auth/login")
+    redirect("/public/auth/login")
   }
 
   if (requiredRole && user.role !== requiredRole && user.role !== "super_admin") {
-    redirect("/dashboard")
+    redirect("/protected/dashboard")
   }
 
   return <>{children}</>

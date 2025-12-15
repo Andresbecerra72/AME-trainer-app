@@ -23,11 +23,11 @@ export default async function UsersManagementPage() {
   const { user, profile } = await getSession()
 
   if (!user) {
-    redirect("/auth/login")
+    redirect("/public/auth/login")
   }
 
   if (!profile || profile.role !== "super_admin") {
-    redirect("/dashboard")
+    redirect("/protected/dashboard")
   }
 
   // Fetch all users (moved to feature API)

@@ -9,11 +9,11 @@ export default async function CreateTopicPage() {
   const { user, role } = await getSession()
 
   if (!user) {
-    redirect("/auth/login")
+    redirect("/public/auth/login")
   }
 
   if (!role || role !== "super_admin") {
-    redirect("/dashboard")
+    redirect("/protected/dashboard")
   }
 
   return (

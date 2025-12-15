@@ -16,11 +16,11 @@ export default async function AnnouncementsPage() {
   const { user, role } = await getSession()
 
   if (!user) {
-    redirect("/auth/login")
+    redirect("/public/auth/login")
   }
 
   if (!role || !["admin", "super_admin"].includes(role)) {
-    redirect("/dashboard")
+    redirect("/protected/dashboard")
   }
 
   const { data: announcements, error } = await supabase

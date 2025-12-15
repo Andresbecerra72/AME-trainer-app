@@ -39,7 +39,7 @@ export async function CommunityContent({
             title="No questions found"
             description="Be the first to contribute and help the community!"
             actionLabel="Submit a Question"
-            actionHref="/community/add-question"
+            actionhref="/protected/community/add-question"
           />
         )}
       </div>

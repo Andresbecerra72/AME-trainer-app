@@ -44,7 +44,7 @@ export function ClientCommunityPage({
     if (sortBy !== "recent") params.set("sort", sortBy)
 
     startTransition(() => {
-      router.push(`/community?${params.toString()}`)
+      router.push(`/protected/community?${params.toString()}`)
     })
   }
 
@@ -133,7 +133,7 @@ export function ClientCommunityPage({
         </div>
 
         {/* Add Question Button */}
-        <Link href="/community/add-question">
+        <Link href="/protected/community/add-question">
           <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
             <Plus className="mr-2 h-4 w-4" />
             Submit a Question

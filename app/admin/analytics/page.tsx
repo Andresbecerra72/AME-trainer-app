@@ -11,11 +11,11 @@ export default async function PlatformAnalyticsPage() {
   const { user, role } = await getSession()
 
   if (!user) {
-    redirect("/auth/login")
+    redirect("/public/auth/login")
   }
 
   if (!role || role !== "super_admin") {
-    redirect("/dashboard")
+    redirect("/protected/dashboard")
   }
   
   const analytics = await getPlatformAnalytics()
@@ -138,7 +138,7 @@ export default async function PlatformAnalyticsPage() {
               <CardContent>
                 <p className="text-2xl font-bold text-yellow-600">{analytics.inconsistentQuestions}</p>
                 <Link href="/admin/duplicates" className="text-xs text-primary hover:underline">
-                  Review →
+                  Review ?
                 </Link>
               </CardContent>
             </Card>
@@ -151,7 +151,7 @@ export default async function PlatformAnalyticsPage() {
           <Card>
             <CardContent className="p-4 space-y-2">
               {analytics.topContributors.map((user: any, index: number) => (
-                <Link key={user.id} href={`/profile/${user.id}`}>
+                <Link key={user.id} href={`/protected/profile/${user.id}`}>
                   <div className="flex items-center justify-between p-2 hover:bg-accent rounded-lg transition-colors">
                     <div className="flex items-center gap-3">
                       <span className="text-lg font-bold text-muted-foreground w-6">#{index + 1}</span>

@@ -30,7 +30,7 @@ export function UserMenu({ user }: UserMenuProps) {
     try {
       const supabase = supabaseBrowserClient
       await supabase.auth.signOut()
-      router.push("/auth/login")
+      router.push("/public/auth/login")
       router.refresh()
     } catch (error) {
       toast({
@@ -64,15 +64,15 @@ export function UserMenu({ user }: UserMenuProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push("/profile/me")}>
+        <DropdownMenuItem onClick={() => router.push("/protected/profile/me")}>
           <User className="mr-2 h-4 w-4" />
           Profile
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push("/leaderboard")}>
+        <DropdownMenuItem onClick={() => router.push("/protected/leaderboard")}>
           <TrendingUp className="mr-2 h-4 w-4" />
           Leaderboard
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push("/settings")}>
+        <DropdownMenuItem onClick={() => router.push("/protected/settings")}>
           <Settings className="mr-2 h-4 w-4" />
           Settings
         </DropdownMenuItem>

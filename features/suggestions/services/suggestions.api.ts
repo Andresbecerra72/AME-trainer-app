@@ -226,7 +226,7 @@ export async function approveSuggestionWithChanges(suggestionId: string) {
   }
 
   revalidatePath("/admin/edit-suggestions");
-  revalidatePath(`/community/questions/${suggestion.question_id}`);
+  revalidatePath(`/protected/community/questions/${suggestion.question_id}`);
   
   return { success: true };
 }

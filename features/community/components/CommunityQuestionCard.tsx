@@ -48,7 +48,7 @@ export function CommunityQuestionCard({ question }: CommunityQuestionCardProps) 
     .slice(0, 2)
 
   return (
-    <Link href={`/community/questions/${question.id}`}>
+    <Link href={`/protected/community/questions/${question.id}`}>
       <div className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-all hover:shadow-md group">
         {/* Compact Header */}
         <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-muted/30 to-transparent border-b">

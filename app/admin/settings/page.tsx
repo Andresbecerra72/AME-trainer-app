@@ -12,11 +12,11 @@ export default async function SystemSettingsPage() {
   const { user, role } = await getSession()
 
   if (!user) {
-    redirect("/auth/login")
+    redirect("/public/auth/login")
   }
 
   if (role !== "super_admin") {
-    redirect("/dashboard")
+    redirect("/protected/dashboard")
   }
 
   const settings = await getSystemSettings()

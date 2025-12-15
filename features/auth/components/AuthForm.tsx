@@ -40,7 +40,7 @@ export function AuthForm({ type }: { type: "login" | "register" }) {
         const { error } = await loginUser(form.email, form.password)
         if (error) throw error
 
-        router.replace("/dashboard")
+        router.replace("/protected/dashboard")
         return
       }
 
@@ -60,7 +60,7 @@ export function AuthForm({ type }: { type: "login" | "register" }) {
         await updateProfileFullName(data.user.id, form.full_name)
       }
 
-      router.replace("/auth/login")
+      router.replace("/public/auth/login")
 
     } catch (err: any) {
       setError(err.message || "Something went wrong")

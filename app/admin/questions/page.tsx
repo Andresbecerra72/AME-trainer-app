@@ -35,11 +35,11 @@ export default async function AdminQuestionsPage({ searchParams }: PageProps) {
   const { search = "", status = "" } = await searchParams
       
   if (!user) {
-    redirect("/auth/login")
+    redirect("/public/auth/login")
   }
 
   if (!role || !["admin", "super_admin"].includes(role)) {
-    redirect("/dashboard")
+    redirect("/protected/dashboard")
   }
 
   const [questions, topics] = await Promise.all([

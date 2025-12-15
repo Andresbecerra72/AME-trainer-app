@@ -145,7 +145,7 @@ export default async function TopicQuestionsPage({ params }: { params: { id: str
                 key={q.id}
                 questionSnippet={q.question_text}
                 isAnswered={q.question_attempts?.length > 0}
-                onClick={() => router.push(`/questions/${q.id}`)}
+                onClick={() => router.push(`/protected/questions/${q.id}`)}
               />
             ))
           )}

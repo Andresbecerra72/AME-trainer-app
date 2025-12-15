@@ -8,7 +8,7 @@ export function useLogout() {
 
   async function logout() {
     await logoutUser();
-    router.replace("/auth/login");
+    router.replace("/public/auth/login");
   }
 
   return logout;

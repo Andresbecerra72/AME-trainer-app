@@ -1,5 +1,5 @@
 import { getAllTopicsServer } from "@/features/topics/services/topic.server";
-import { TopicList } from "@/features/topics/components/TopicList";
+import { TopicList } from "@/features/topics/components/topic-list";
 
 export default async function TopicsPage() {
   const topics = await getAllTopicsServer();

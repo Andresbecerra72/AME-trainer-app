@@ -142,7 +142,7 @@ export function ReportCard({ report }: ReportCardProps) {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t">
-          <Link href={`/community/questions/${report.question_id}`} className="flex-1">
+          <Link href={`/protected/community/questions/${report.question_id}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full h-8 text-xs">
               <Eye className="w-3.5 h-3.5 mr-1.5" />
               View Question

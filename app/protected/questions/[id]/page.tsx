@@ -123,7 +123,7 @@ export default async function ViewQuestionPage({ params }: { params: { id: strin
             <div className="max-w-2xl mx-auto flex gap-3">
               {/* Admin/edit */}
               {(isAdmin || isAuthor) && (
-                <Link href={`/questions/${question.id}/edit`} className="flex-1">
+                <Link href={`/protected/questions/${question.id}/edit`} className="flex-1">
                   <SecondaryButton className="w-full">
                     <Edit className="w-4 h-4 mr-2" />
                     Edit

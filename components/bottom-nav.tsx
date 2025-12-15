@@ -17,27 +17,27 @@ export function BottomNav({ userRole = "user", unreadNotifications = 0 }: Bottom
     {
       label: "Home",
       icon: Home,
-      href: "/dashboard",
-      active: pathname === "/dashboard",
+      href: "/protected/dashboard",
+      active: pathname === "/protected/dashboard",
     },
     {
       label: "Community",
       icon: Users,
-      href: "/community",
-      active: pathname?.startsWith("/community"),
+      href: "/protected/community",
+      active: pathname?.startsWith("/protected/community"),
     },
     {
       label: "Notifications",
       icon: Bell,
-      href: "/notifications",
-      active: pathname === "/notifications",
+      href: "/protected/notifications",
+      active: pathname === "/protected/notifications",
       badge: unreadNotifications,
     },
     {
       label: "Profile",
       icon: User,
-      href: "/profile/me",
-      active: pathname?.startsWith("/profile"),
+      href: "/protected/profile/me",
+      active: pathname?.startsWith("/protected/profile"),
     },
   ]
 

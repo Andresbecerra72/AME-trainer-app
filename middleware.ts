@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
 
   const ADMIN_PATHS = ["/admin"]
   const SUPER_PATHS = ["/super"]
-  const PROTECTED_PATHS = ["/dashboard", "/questions", "/community", "/profile"]
+  const PROTECTED_PATHS = ["/protected"]
 
   let response = NextResponse.next({ request })
 
@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
   )
 
   if (isProtected && !user) {
-    url.pathname = "/auth/login"
+    url.pathname = "/public/auth/login"
     return NextResponse.redirect(url)
   }
 
@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (profile?.role !== "admin" && profile?.role !== "super_admin") {
-      url.pathname = "/dashboard"
+      url.pathname = "/protected/dashboard"
       return NextResponse.redirect(url)
     }
   }
@@ -68,7 +68,7 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (profile?.role !== "super_admin") {
-      url.pathname = "/dashboard"
+      url.pathname = "/protected/dashboard"
       return NextResponse.redirect(url)
     }
   }
@@ -78,10 +78,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/questions/:path*",
-    "/community/:path*",
-    "/profile/:path*",
+    "/protected/:path*",
     "/admin/:path*",
     "/super/:path*",
   ],

@@ -13,11 +13,11 @@ export default async function AdminDashboard() {
 const { user, role } = await getSession()
 
   if (!user) {
-    redirect("/auth/login")
+    redirect("/public/auth/login")
   }
 
   if (!role || !["admin", "super_admin"].includes(role)) {
-    redirect("/dashboard")
+    redirect("/protected/dashboard")
   }
  
   const [stats, pendingQuestions, pendingReports] = await Promise.all([
