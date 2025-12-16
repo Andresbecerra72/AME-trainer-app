@@ -322,7 +322,7 @@ const { user, role } = await getSession()
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium line-clamp-2 mb-1">{question.question_text}</p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>by {question.author?.display_name || "Anonymous"}</span>
+                            <span>by {question.author?.full_name || "Anonymous"}</span>
                             <span>•</span>
                             <Badge variant="secondary" className="text-xs">Pending</Badge>
                           </div>

@@ -18,7 +18,7 @@ import {
       icon: PlusCircle,
       color: "text-green-600",
       bgColor: "bg-green-50 dark:bg-green-950/20",
-      path: "/protected/community/add-question",
+      path: "/protected/add-question",
     },
     {
       title: "Study Topics",

@@ -1,3 +1,4 @@
+import { getSession } from "@/features/auth/services/getSession"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
@@ -21,16 +22,24 @@ export async function getPendingQuestions() {
 export async function approveQuestion(formData: FormData) {
   "use server"
   const questionId = formData.get("questionId") as string
+  const authorId = formData.get("authorId") as string
   const supabase = await createSupabaseServerClient()
+  const { user } = await getSession()
 
-  await supabase.from("questions").update({ status: "approved" }).eq("id", questionId)
+  await supabase
+    .from("questions")
+    .update({ 
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user?.id || null,
+      status: "approved"
+     })
+    .eq("id", questionId)
 
-  // Lookup author_id so we can create the notification (keeps form minimal)
-  const { data: q } = await supabase.from("questions").select("author_id").eq("id", questionId).single()
-  const authorId = q?.author_id
 
   if (authorId) {
-    await supabase.from("notifications").insert({
+    await supabase
+    .from("notifications")
+    .insert({
       user_id: authorId,
       type: "question_approved",
       message: "Your question has been approved!",

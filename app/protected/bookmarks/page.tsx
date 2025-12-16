@@ -50,7 +50,7 @@ export default async function BookmarksPage() {
             title="No bookmarks yet"
             description="Save questions for later by tapping the bookmark icon on any question."
             actionLabel="Browse Questions"
-            actionhref="/protected/community"
+            actionHref="/protected/community"
           />
         )}
       </div>

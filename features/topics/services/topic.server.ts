@@ -107,7 +107,7 @@ export async function updateTopicAction(
       name: data.name,
       description: data.description || null,
       code: data.code || null,
-      icon: data.icon || null,
+      icon: data.icon?.toLowerCase() || null,
     })
     .eq("id", topicId)
     .select()

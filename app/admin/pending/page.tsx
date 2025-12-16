@@ -189,6 +189,7 @@ function PendingQuestionCard({ question }: { question: any }) {
         <div className="p-4 bg-muted/30 border-t">
           <form method="post" className="space-y-3">
             <input type="hidden" name="questionId" value={question.id} />
+            <input type="hidden" name="authorId" value={question.author_id} />
             
             <div className="grid grid-cols-2 gap-2">
               <Button 
