@@ -20,6 +20,10 @@ import { useToast } from "@/hooks/use-toast"
 import { BottomNav } from "@/components/bottom-nav"
 import { getSession } from "@/features/auth/services/getSession"
 import { UserRole } from "@/lib/types"
+import { useQuestionImport } from "@/features/questions/import/hooks/useQuestionImport"
+import { DraftQuestionsList } from "@/features/questions/import/components/DraftQuestionsList"
+import { FormatExampleCard } from "@/features/questions/import/components/FormatExampleCard"
+import type { DraftQuestion } from "@/features/questions/import/parsers/pasteText.parser"
 
 export default function AddQuestionPage() {
   const router = useRouter()
@@ -38,7 +42,13 @@ export default function AddQuestionPage() {
   const [selectedTopic, setSelectedTopic] = useState("")
   const [difficulty, setDifficulty] = useState("medium")
   const [explanation, setExplanation] = useState("")
-  const [pastedText, setPastedText] = useState("")
+  const { pastedText, setPastedText, drafts, submitPaste, isSubmitting: isImportSubmitting } = useQuestionImport()
+  
+  // State for managing parsed drafts
+  const [editableDrafts, setEditableDrafts] = useState<DraftQuestion[]>([])
+  const [showParsedQuestions, setShowParsedQuestions] = useState(false)
+  const [batchTopic, setBatchTopic] = useState("")
+  const [batchDifficulty, setBatchDifficulty] = useState<"easy" | "medium" | "hard">("medium")
 
   useEffect(() => {
     loadTopics()
@@ -53,6 +63,87 @@ export default function AddQuestionPage() {
   const loadTopics = async () => {
     const data = await getTopics()
     setTopics(data)
+  }
+
+  const handleParse = () => {
+    if (drafts.length === 0) {
+      toast({
+        title: "No questions found",
+        description: "Please check your text format and try again.",
+        variant: "destructive",
+      })
+      return
+    }
+    setEditableDrafts(drafts)
+    setShowParsedQuestions(true)
+    toast({
+      title: "Questions parsed",
+      description: `Found ${drafts.length} question${drafts.length === 1 ? '' : 's'}. Review and submit when ready.`,
+    })
+  }
+
+  const handleUpdateDraft = (index: number, updated: DraftQuestion) => {
+    const newDrafts = [...editableDrafts]
+    newDrafts[index] = updated
+    setEditableDrafts(newDrafts)
+  }
+
+  const handleDeleteDraft = (index: number) => {
+    const newDrafts = editableDrafts.filter((_, i) => i !== index)
+    setEditableDrafts(newDrafts)
+    toast({
+      title: "Question removed",
+      description: "The question has been removed from the batch.",
+    })
+  }
+
+  const handleSubmitBatch = async () => {
+    if (!batchTopic) {
+      toast({
+        title: "Topic required",
+        description: "Please select a topic for these questions.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (editableDrafts.length === 0) {
+      toast({
+        title: "No questions to submit",
+        description: "Please parse some questions first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      // Use editableDrafts directly since they may have been modified
+      const result = await submitPaste({
+        topic_id: batchTopic,
+        difficulty: batchDifficulty,
+        questions: editableDrafts, // Pass the edited drafts
+      })
+
+      toast({
+        title: "Success",
+        description: `${result.inserted} question${result.inserted === 1 ? '' : 's'} submitted for review.`,
+      })
+
+      // Reset state
+      setPastedText("")
+      setEditableDrafts([])
+      setShowParsedQuestions(false)
+      setBatchTopic("")
+      setBatchDifficulty("medium")
+      
+      router.push("/protected/dashboard")
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit questions. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -270,19 +361,81 @@ export default function AddQuestionPage() {
                 onChange={(e) => setPastedText(e.target.value)}
                 rows={12}
                 className="resize-none font-mono text-sm"
+                disabled={showParsedQuestions}
               />
             </MobileCard>
 
-            <PrimaryButton fullWidth className="h-14 text-lg font-semibold">Auto-Parse Questions</PrimaryButton>
+            {!showParsedQuestions ? (
+              <>
+                <PrimaryButton 
+                  fullWidth 
+                  className="h-14 text-lg font-semibold"
+                  onClick={handleParse}
+                  disabled={!pastedText.trim()}
+                >
+                  Auto-Parse Questions
+                </PrimaryButton>
 
-            <MobileCard className="bg-muted/30 p-6">
-              <div className="space-y-2">
-                <p className="font-medium text-foreground">What happens next?</p>
-                <p className="text-base text-muted-foreground">
-                  After parsing, you'll be able to review and edit each question before adding them to your bank.
-                </p>
-              </div>
-            </MobileCard>
+                <FormatExampleCard />
+              </>
+            ) : (
+              <>
+                {/* Topic and Difficulty Selection */}
+                <MobileCard className="p-4 sm:p-5 space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Select Topic</Label>
+                    <TopicSelector 
+                      topics={topics}
+                      selectedTopicId={batchTopic}
+                      onSelectTopic={setBatchTopic}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="batch-difficulty" className="text-sm font-semibold">Difficulty Level</Label>
+                    <Select value={batchDifficulty} onValueChange={(v) => setBatchDifficulty(v as "easy" | "medium" | "hard")}>
+                      <SelectTrigger id="batch-difficulty" className="h-10 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">🟢 Easy</SelectItem>
+                        <SelectItem value="medium">🟡 Medium</SelectItem>
+                        <SelectItem value="hard">🔴 Hard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </MobileCard>
+
+                {/* Parsed Questions List */}
+                <DraftQuestionsList
+                  questions={editableDrafts}
+                  onUpdate={handleUpdateDraft}
+                  onDelete={handleDeleteDraft}
+                />
+
+                {/* Submit Buttons */}
+                <div className="space-y-3 pt-2 pb-20">
+                  <PrimaryButton
+                    fullWidth
+                    className="h-14 text-lg font-semibold"
+                    onClick={handleSubmitBatch}
+                    disabled={isImportSubmitting || editableDrafts.length === 0 || !batchTopic}
+                  >
+                    {isImportSubmitting ? "Submitting..." : `Submit ${editableDrafts.length} Question${editableDrafts.length === 1 ? '' : 's'}`}
+                  </PrimaryButton>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowParsedQuestions(false)
+                      setEditableDrafts([])
+                    }}
+                    className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Back to Edit Text
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
