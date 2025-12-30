@@ -1,7 +1,7 @@
 "use server"
 import { parseQuestionsFromText } from "../parsers/questionText.parser"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { DraftQuestion } from "../types"
+import { DraftQuestion, QuestionImportJob } from "../types"
 
 export async function createQuestionsBatch(input: {
   topic_id: string
@@ -89,4 +89,67 @@ export async function processImportJob(jobId: string) {
 
     throw e
   }
+}
+
+
+export async function createImportJob(input: {
+  userId: string
+  filePath: string
+  fileName?: string
+  fileMime?: string
+}): Promise<QuestionImportJob> {
+  const supabase = await createSupabaseServerClient()
+  console.log("SERVER", input)
+  const { data, error } = await supabase
+    .from("question_imports")
+    .insert({
+      user_id: input.userId,
+      file_path: input.filePath,
+      file_name: input.fileName ?? null,
+      file_mime: input.fileMime ?? null,
+      status: "pending",
+    })
+    .select("*")
+    .single()
+  console.log("INSERT question_imports", error, data)
+  if (error) throw new Error(error.message)
+  return data as QuestionImportJob
+}
+
+export async function updateImportJobPath(jobId: string, filePath: string) {
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase
+    .from("question_imports")
+    .update({ file_path: filePath })
+    .eq("id", jobId)
+  console.log("UPDATED question_imports", error, data)
+}
+
+export async function getImportJob(jobId: string): Promise<QuestionImportJob> {
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase
+    .from("question_imports")
+    .select("*")
+    .eq("id", jobId)
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data as QuestionImportJob
+}
+
+export async function uploadImportFile(input: {
+  userId: string
+  file: File
+  jobId: string
+}) {
+  const supabase = await createSupabaseServerClient()
+
+  const path = `${input.userId}/${input.jobId}/${input.file.name}`
+
+  const { error } = await supabase.storage
+    .from("question-imports")
+    .upload(path, input.file, { upsert: true })
+
+  if (error) throw new Error(error.message)
+  return { path }
 }

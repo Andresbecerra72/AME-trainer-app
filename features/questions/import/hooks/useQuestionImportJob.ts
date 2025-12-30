@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import type { QuestionImportJob } from "../types"
-import { createImportJob, getImportJob, uploadImportFile } from "../services/questionImport.api"
-import { processImportJob } from "../server/questionImport.actions" // Phase 1
+import { triggerParseImportJob } from "../services/questionImport.api"
+import { getImportJob, createImportJob, processImportJob, updateImportJobPath, uploadImportFile } from "../server/questionImport.actions" // Phase 1
 
 export function useQuestionImportJob(userId: string | null) {
   const [job, setJob] = useState<QuestionImportJob | null>(null)
@@ -36,15 +36,17 @@ export function useQuestionImportJob(userId: string | null) {
       // Update job with real path
       // (Use client update since job belongs to user)
       // You can add updateImportJob() in api if you want; inline here for simplicity.
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { supabaseBrowserClient } = require("@/lib/supabase/client")
-      await supabaseBrowserClient.from("question_imports").update({ file_path: path }).eq("id", created.id)
+
+      await updateImportJobPath(path, created.id)
+
 
       const refreshed = await getImportJob(created.id)
       setJob(refreshed)
 
       // Phase 1: call server action to process (PDF only)
-      await processImportJob(created.id)
+      await processImportJob(created.id)      
+
+      await triggerParseImportJob(created.id)
 
       // Poll until ready/failed (in case processing async)
       beginPolling(created.id)
