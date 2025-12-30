@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { PrimaryButton } from "@/components/primary-button"
-import { Upload, FileText } from "lucide-react"
+import { Upload, FileText, Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TopicSelector } from "@/components/topic-selector"
 import { useRouter } from "next/navigation"
@@ -19,11 +19,13 @@ import { createQuestion, getTopics } from "@/lib/db-actions"
 import { useToast } from "@/hooks/use-toast"
 import { BottomNav } from "@/components/bottom-nav"
 import { getSession } from "@/features/auth/services/getSession"
-import { UserRole } from "@/lib/types"
+import { User, UserRole } from "@/lib/types"
 import { useQuestionImport } from "@/features/questions/import/hooks/useQuestionImport"
-import { DraftQuestionsList } from "@/features/questions/import/components/DraftQuestionsList"
-import { FormatExampleCard } from "@/features/questions/import/components/FormatExampleCard"
-import type { DraftQuestion } from "@/features/questions/import/parsers/pasteText.parser"
+import { DraftQuestionsList, FormatExampleCard, FileUploadStatusCard, FileImportReviewCard } from "@/features/questions/import/components"
+import { DraftQuestion } from "@/features/questions/import/types"
+import { useQuestionImportJob } from "@/features/questions/import/hooks/useQuestionImportJob"
+import { useUser } from "@/features/auth/components/UserProvider"
+import { createQuestionsBatch } from "@/features/questions/import/server/questionImport.actions"
 
 export default function AddQuestionPage() {
   const router = useRouter()
@@ -32,6 +34,7 @@ export default function AddQuestionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [topics, setTopics] = useState<any[]>([])
   const [role, setRole] = useState<UserRole>()
+  const [user, setUser] = useState<User>()
 
   const [question, setQuestion] = useState("")
   const [optionA, setOptionA] = useState("")
@@ -50,13 +53,16 @@ export default function AddQuestionPage() {
   const [batchTopic, setBatchTopic] = useState("")
   const [batchDifficulty, setBatchDifficulty] = useState<"easy" | "medium" | "hard">("medium")
 
+  const { job, isUploading, error, startUpload } = useQuestionImportJob(user?.id ?? null)
+
   useEffect(() => {
     loadTopics()
     loadSession()
   }, [])
 
   const loadSession = async () => {
-    const { role: userRole } = await getSession()
+    const { role: userRole, profile: userProfile } = await getSession()
+    setUser(userProfile)
     setRole(userRole)
   }
 
@@ -66,6 +72,8 @@ export default function AddQuestionPage() {
   }
 
   const handleParse = () => {
+    console.log("Parsed drafts:", drafts)
+
     if (drafts.length === 0) {
       toast({
         title: "No questions found",
@@ -95,6 +103,27 @@ export default function AddQuestionPage() {
       title: "Question removed",
       description: "The question has been removed from the batch.",
     })
+  }
+
+  const handleFileUpload = async (file: File) => {
+    if (!user?.id) {
+      toast({
+        title: "Session Error",
+        description: "Please refresh the page and try again.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      await startUpload(file)
+    } catch (error: any) {
+      toast({
+        title: "Upload Failed",
+        description: error?.message || "Failed to upload file. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleSubmitBatch = async () => {
@@ -143,6 +172,30 @@ export default function AddQuestionPage() {
         description: "Failed to submit questions. Please try again.",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleSubmitFileImport = async (payload: {
+    topic_id: string
+    difficulty: "easy" | "medium" | "hard"
+    questions: DraftQuestion[]
+  }) => {
+    try {
+      const result = await createQuestionsBatch(payload)
+      
+      toast({
+        title: "Success",
+        description: `${result.inserted} question${result.inserted === 1 ? '' : 's'} from file submitted for review.`,
+      })
+
+      router.push("/protected/dashboard")
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit questions from file.",
+        variant: "destructive",
+      })
+      throw error
     }
   }
 
@@ -315,37 +368,81 @@ export default function AddQuestionPage() {
         {/* Upload File Mode */}
         {mode === "Upload File" && (
           <div className="space-y-6">
-            <MobileCard className="border-dashed border-2 p-12 text-center space-y-6 hover:border-primary/50 transition-colors">
-              <div className="flex justify-center">
-                <div className="p-6 bg-primary/10 rounded-2xl">
-                  <Upload className="w-12 h-12 text-primary" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-lg font-semibold text-foreground">Upload Question File</p>
-                <p className="text-base text-muted-foreground">PDF, DOC, or image files supported</p>
-              </div>
-              <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" className="hidden" id="file-upload" />
-              <label htmlFor="file-upload">
-                <PrimaryButton type="button" onClick={() => document.getElementById("file-upload")?.click()} className="h-12 px-8 text-base">
-                  Choose File
-                </PrimaryButton>
-              </label>
-            </MobileCard>
+            {/* Upload Area - Only show if no job or job failed */}
+            {(!job || job.status === "failed") && (
+              <>
+                {!user?.id && (
+                  <MobileCard className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800 mb-4">
+                    <div className="flex items-center gap-2 text-sm text-yellow-700 dark:text-yellow-300">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <p>Loading user session...</p>
+                    </div>
+                  </MobileCard>
+                )}
+                <MobileCard className="border-dashed border-2 p-12 text-center space-y-6 hover:border-primary/50 transition-colors">
+                  <div className="flex justify-center">
+                    <div className="p-6 bg-primary/10 rounded-2xl">
+                      <Upload className="w-12 h-12 text-primary" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-lg font-semibold text-foreground">Upload Question File</p>
+                    <p className="text-base text-muted-foreground">PDF or image files supported</p>
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="application/pdf,image/*" 
+                    className="hidden" 
+                    id="file-upload"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleFileUpload(file)
+                      // Reset input to allow same file selection again
+                      e.target.value = ''
+                    }}
+                    disabled={!user?.id || isUploading}
+                  />
+                  <label htmlFor="file-upload">
+                    <PrimaryButton 
+                      type="button" 
+                      onClick={() => document.getElementById("file-upload")?.click()} 
+                      className="h-12 px-8 text-base"
+                      disabled={!user?.id || isUploading}
+                    >
+                      {isUploading ? "Uploading..." : "Choose File"}
+                    </PrimaryButton>
+                  </label>
+                </MobileCard>
 
-            <MobileCard className="bg-muted/30 p-6">
-              <div className="flex gap-4">
-                <FileText className="w-6 h-6 text-primary flex-shrink-0" />
-                <div className="text-base text-muted-foreground space-y-2">
-                  <p className="font-medium text-foreground">How it works:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>OCR will extract text from your file</li>
-                    <li>Questions will be parsed automatically</li>
-                    <li>Review and edit before submitting</li>
-                  </ul>
-                </div>
-              </div>
-            </MobileCard>
+                <MobileCard className="bg-muted/30 p-6">
+                  <div className="flex gap-4">
+                    <FileText className="w-6 h-6 text-primary flex-shrink-0" />
+                    <div className="text-base text-muted-foreground space-y-2">
+                      <p className="font-medium text-foreground">How it works:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>Upload your PDF or image file</li>
+                        <li>Text will be extracted automatically</li>
+                        <li>Questions will be parsed from the text</li>
+                        <li>Review and edit before submitting</li>
+                      </ul>
+                    </div>
+                  </div>
+                </MobileCard>
+              </>
+            )}
+
+            {/* Status Card */}
+            <FileUploadStatusCard job={job} isUploading={isUploading} error={error} />
+
+            {/* Review Card - Only show when ready */}
+            {job?.status === "ready" && job.result && job.result.length > 0 && (
+              <FileImportReviewCard
+                questions={job.result}
+                topics={topics}
+                onSubmit={handleSubmitFileImport}
+                isSubmitting={isSubmitting}
+              />
+            )}
           </div>
         )}
 

@@ -1,10 +1,84 @@
 # Question Import Feature
 
-Esta funcionalidad permite importar múltiples preguntas de forma masiva mediante texto pegado.
+Esta funcionalidad permite importar preguntas de tres formas diferentes:
 
-## Componentes Creados
+1. **Manual**: Entrada individual de preguntas (modo original)
+2. **Paste Text**: Importación masiva desde texto pegado
+3. **Upload File**: Extracción automática desde archivos PDF/imágenes
 
-### 1. `DraftQuestionCard.tsx`
+## 📁 Estructura del Módulo
+
+```
+features/questions/import/
+├── components/
+│   ├── DraftQuestionCard.tsx       # Vista individual de pregunta draft
+│   ├── DraftQuestionsList.tsx      # Lista de preguntas draft
+│   ├── FormatExampleCard.tsx       # Guía de formato para paste
+│   ├── FileUploadStatusCard.tsx    # Estados del upload (new)
+│   ├── FileImportReviewCard.tsx    # Review de preguntas de archivo (new)
+│   └── index.ts                     # Exports
+├── hooks/
+│   ├── useQuestionImport.ts        # Hook para paste text
+│   └── useQuestionImportJob.ts     # Hook para file upload (new)
+├── parsers/
+│   ├── pasteText.parser.ts         # Parser para texto pegado
+│   └── questionText.parser.ts      # Parser genérico de texto (new)
+├── server/
+│   └── questionImport.actions.ts   # Server actions (batch insert y process)
+├── services/
+│   └── questionImport.api.ts       # API cliente para jobs (new)
+├── types.ts                         # Tipos compartidos
+├── README.md                        # Este archivo
+├── EXAMPLES.md                      # Ejemplos de formato
+└── FILE_UPLOAD.md                   # Documentación detallada de upload (new)
+```
+
+## 🎯 Modo 1: Paste Text
+
+Permite pegar múltiples preguntas en formato estructurado y revisarlas antes de enviar.
+
+### Componentes
+
+- **FormatExampleCard**: Muestra el formato esperado con botón de copiar
+- **DraftQuestionsList**: Lista editable de preguntas parseadas
+- **DraftQuestionCard**: Card individual con edición inline
+
+### Flujo
+
+1. Usuario pega texto en formato estructurado
+2. Click en "Auto-Parse Questions"
+3. Revisión y edición de preguntas
+4. Selección de topic y difficulty
+5. Submit batch a DB
+
+Ver [EXAMPLES.md](./EXAMPLES.md) para formatos soportados.
+
+## 🎯 Modo 2: Upload File (NEW)
+
+Permite subir archivos PDF o imágenes para extracción automática de preguntas.
+
+### Componentes Nuevos
+
+- **FileUploadStatusCard**: Muestra estados del proceso (uploading, processing, ready, failed)
+- **FileImportReviewCard**: Revisión de preguntas extraídas con validaciones
+
+### Flujo
+
+1. Usuario sube archivo (PDF/imagen)
+2. Archivo se guarda en Supabase Storage
+3. Job se crea en DB con status "pending"
+4. Server action procesa archivo (extrae texto)
+5. Parser detecta preguntas del texto
+6. Job actualiza a "ready" con resultado
+7. Polling detecta cambio y muestra review
+8. Usuario revisa, edita, completa preguntas faltantes
+9. Submit batch a DB
+
+Ver [FILE_UPLOAD.md](./FILE_UPLOAD.md) para documentación completa.
+
+## Componentes Principales
+
+### DraftQuestionCard.tsx (Actualizado)
 Componente que muestra cada pregunta parseada con:
 - Vista previa de la pregunta y opciones
 - Indicador de respuesta correcta con código de color

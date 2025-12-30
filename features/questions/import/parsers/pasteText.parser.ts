@@ -1,12 +1,5 @@
-export type DraftQuestion = {
-  question_text: string
-  option_a: string
-  option_b: string
-  option_c: string
-  option_d: string
-  correct_answer: "A" | "B" | "C" | "D"
-  explanation?: string
-}
+import { DraftQuestion } from "../types"
+
 
 const normalize = (s: string) => s.replace(/\r\n/g, "\n").trim()
 
@@ -18,11 +11,14 @@ const normalize = (s: string) => s.replace(/\r\n/g, "\n").trim()
 // D) ...
 // Answer: A
 export function parsePastedQuestions(raw: string): DraftQuestion[] {
+  console.log("raw pasted text:", raw)  
   const text = normalize(raw)
+  console.log("normalized text:", text)
   if (!text) return []
 
   // Split by blank lines (two or more newlines)
   const blocks = text.split(/\n{2,}/g).map(b => b.trim()).filter(Boolean)
+  console.log("text blocks:", blocks)
 
   const out: DraftQuestion[] = []
 
@@ -34,6 +30,9 @@ export function parsePastedQuestions(raw: string): DraftQuestion[] {
     const dMatch = block.match(/^(?:D\)|D\.|D:)\s*(.+)$/m)
     const ansMatch = block.match(/^(?:Answer:|Correct:)\s*([ABCD])\b/m)
     const expMatch = block.match(/^(?:Explanation:)\s*([\s\S]+)$/m)
+
+    console.log("qMatch:", qMatch)
+    console.log("aMatch:", aMatch)
 
     if (!qMatch || !aMatch || !bMatch || !cMatch || !dMatch || !ansMatch) continue
 

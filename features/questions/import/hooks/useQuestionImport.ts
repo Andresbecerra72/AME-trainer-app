@@ -1,8 +1,9 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { parsePastedQuestions, type DraftQuestion } from "../parsers/pasteText.parser"
+import { parsePastedQuestions } from "../parsers/pasteText.parser"
 import { createQuestionsBatch } from "../server/questionImport.actions"
+import { type DraftQuestion } from "../types"
 
 export function useQuestionImport() {
   const [pastedText, setPastedText] = useState("")
