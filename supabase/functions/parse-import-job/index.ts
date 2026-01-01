@@ -1,6 +1,14 @@
-// <reference types="https://deno.land/x/types/index.d.ts" />
+/// <reference types="https://deno.land/x/types/index.d.ts" />
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4"
+// -------------------------
+// CORS Headers
+// -------------------------
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*', // En producción, cámbialo por tu dominio real
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
+};
 
 // -------------------------
 // Types
@@ -70,7 +78,7 @@ async function extractPdfText(pdfBytes: Uint8Array): Promise<string> {
   const pdfjsLib = await import("https://esm.sh/pdfjs-dist@4.6.82/legacy/build/pdf.mjs")
 
   // pdfjs in Deno needs a worker disabled
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // deno-lint-ignore no-explicit-any
   ;(pdfjsLib as any).GlobalWorkerOptions.workerSrc = ""
 
   const loadingTask = (pdfjsLib as any).getDocument({ data: pdfBytes })
@@ -80,6 +88,7 @@ async function extractPdfText(pdfBytes: Uint8Array): Promise<string> {
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum)
     const content = await page.getTextContent()
+    // deno-lint-ignore no-explicit-any
     const pageText = content.items.map((it: any) => it.str).join(" ")
     texts.push(pageText)
   }
@@ -90,14 +99,20 @@ async function extractPdfText(pdfBytes: Uint8Array): Promise<string> {
 // -------------------------
 // Handler
 // -------------------------
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
+   // Handle preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders })
+  }
   try {
+    console.log("parse-import-job function invoked")
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!
 
     if (!SUPABASE_URL || !SERVICE_ROLE || !ANON_KEY) {
-      return new Response(JSON.stringify({ error: "Missing Supabase env vars" }), { status: 500 })
+      return new Response(JSON.stringify({ error: "Missing Supabase env vars" }),
+       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
     // 1) Authenticated caller (uses user token)
@@ -112,13 +127,15 @@ Deno.serve(async (req) => {
     } = await userClient.auth.getUser()
 
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
+      return new Response(JSON.stringify({ error: "Unauthorized" }),
+       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
     const body = await req.json().catch(() => null)
     const jobId = body?.jobId as string | undefined
     if (!jobId) {
-      return new Response(JSON.stringify({ error: "Missing jobId" }), { status: 400 })
+      return new Response(JSON.stringify({ error: "Missing jobId" }),
+       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
     // 2) Service client for Storage + DB updates
@@ -132,7 +149,8 @@ Deno.serve(async (req) => {
       .single()
 
     if (jobError || !job) {
-      return new Response(JSON.stringify({ error: "Job not found" }), { status: 404 })
+      return new Response(JSON.stringify({ error: "Job not found" }),
+       { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
     const j = job as ImportJob
@@ -140,7 +158,8 @@ Deno.serve(async (req) => {
     // Only owner can trigger, OR admin roles (optional)
     // Here: owner only (simpler). If you want admin access, we can add role check.
     if (j.user_id !== user.id) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 })
+      return new Response(JSON.stringify({ error: "Forbidden" }),
+       { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
     // Mark processing
@@ -162,7 +181,8 @@ Deno.serve(async (req) => {
         .update({ status: "failed", error: dlErr?.message ?? "Download failed" })
         .eq("id", jobId)
 
-      return new Response(JSON.stringify({ error: "Failed to download file" }), { status: 500 })
+      return new Response(JSON.stringify({ error: "Failed to download file" }),
+       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
     const mime = j.file_mime ?? ""
@@ -197,9 +217,11 @@ Deno.serve(async (req) => {
       })
       .eq("id", jobId)
 
-    return new Response(JSON.stringify({ ok: true, jobId, detected: drafts.length }), { status: 200 })
+    return new Response(JSON.stringify({ ok: true, jobId, detected: drafts.length }),
+     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } })
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error"
-    return new Response(JSON.stringify({ error: msg }), { status: 500 })
+    return new Response(JSON.stringify({ error: msg }),
+     { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } })
   }
 })

@@ -2,6 +2,38 @@
 
 A comprehensive web-based exam training application for Aircraft Maintenance Engineers (AME) with social learning features, community question bank, and role-based access control.
 
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ and pnpm
+- Docker Desktop (for Supabase local)
+- Supabase CLI
+
+### Local Development
+
+**Option 1: Automated (Recommended)**
+```powershell
+# Windows PowerShell
+.\start-dev.ps1
+```
+
+**Option 2: Manual**
+```bash
+# Terminal 1: Start Supabase
+npx supabase start
+
+# Terminal 2: Start Next.js
+pnpm install
+pnpm dev
+```
+
+**Access Points:**
+- 🌐 App: http://localhost:3000
+- 📊 Supabase Studio: http://127.0.0.1:54323
+- 📧 Email Testing: http://127.0.0.1:54324
+
+📖 **Full setup guide**: [EDGE_FUNCTION_SETUP.md](./EDGE_FUNCTION_SETUP.md)
+
 ## Features
 
 ### 📚 Core Exam System
@@ -9,6 +41,7 @@ A comprehensive web-based exam training application for Aircraft Maintenance Eng
 - **Practice Exams**: Configurable exam setup with timer and question count
 - **Question Review**: Detailed explanations and performance tracking
 - **Progress Analytics**: Personal stats, study time tracking, and topic performance
+- **🆕 PDF Import**: Upload and parse question PDFs automatically (via Edge Functions)
 
 ### 👥 Social Learning Platform
 - **Community Questions**: User-contributed question bank with voting system
@@ -35,6 +68,7 @@ A comprehensive web-based exam training application for Aircraft Maintenance Eng
 - **Styling**: Tailwind CSS v4
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth
+- **Edge Functions**: Deno (for PDF parsing)
 - **UI Components**: shadcn/ui
 - **State Management**: React Server Components + Server Actions
 
@@ -223,13 +257,49 @@ Questions submitted by users go through a moderation flow:
 
 ## Deployment
 
-Deploy directly from v0 to Vercel:
-1. Click "Publish" button in v0
-2. Connect to GitHub (optional)
-3. Deploy to production
+### Local Development
+See [START_SCRIPTS.md](./START_SCRIPTS.md) for automated startup scripts.
+
+### Production (Vercel)
+1. Push to GitHub
+2. Connect repository to Vercel
+3. Add environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+4. Deploy
+
+### Edge Functions
+Edge Functions are deployed automatically with Supabase. For manual deployment:
+```bash
+npx supabase functions deploy parse-import-job
+```
+
+## Testing
+
+📖 See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for comprehensive testing instructions.
+
+Quick test:
+```powershell
+# Start services
+.\start-dev.ps1
+
+# Run tests (if available)
+pnpm test
+```
+
+## Documentation
+
+- 📘 [Edge Function Setup](./EDGE_FUNCTION_SETUP.md) - Complete guide for local development
+- 🚀 [Start Scripts](./START_SCRIPTS.md) - Automated startup commands
+- 🧪 [Testing Guide](./TESTING_GUIDE.md) - How to test the PDF import feature
+- 📋 [Features Completed](./FEATURES_COMPLETED.md) - Implementation status
 
 ## Future Enhancements
 
+- [x] PDF question import with Edge Functions
+- [ ] OCR for scanned PDFs (Phase 2)
+- [ ] AI-powered question parsing (OpenAI/Anthropic)
 - [ ] Badge/achievement system
 - [ ] Real-time notifications
 - [ ] Study groups and collaboration
@@ -239,13 +309,38 @@ Deploy directly from v0 to Vercel:
 - [ ] Offline mode support
 - [ ] Question attachments (images/diagrams)
 
+## Troubleshooting
+
+### Common Issues
+
+**Docker not running**
+```powershell
+Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+```
+
+**Port conflicts**
+```powershell
+npx supabase stop
+npx supabase start
+```
+
+**Database migrations not applied**
+```powershell
+npx supabase db reset
+```
+
+See [EDGE_FUNCTION_SETUP.md](./EDGE_FUNCTION_SETUP.md#-debugging) for more troubleshooting tips.
+
 ## Support
 
-For issues or questions, please open a support ticket at vercel.com/help
+For issues or questions:
+- Check the documentation files in the root directory
+- Review [TESTING_GUIDE.md](./TESTING_GUIDE.md)
+- Open an issue on GitHub
 
 ## License
 
-Built with v0 by Vercel
+Built with Next.js, Supabase, and shadcn/ui
 
 ---
 
