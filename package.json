@@ -5,8 +5,16 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
+    "dev:local": "npm run env:local && npm run dev",
+    "dev:cloud": "npm run env:cloud && npm run dev",
+    "env:local": "powershell -ExecutionPolicy Bypass -File ./dev-local.ps1 -NoStart",
+    "env:cloud": "powershell -ExecutionPolicy Bypass -File ./dev-cloud.ps1 -NoStart",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "next start",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:reset": "npx supabase db reset",
+    "supabase:status": "npx supabase status"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
