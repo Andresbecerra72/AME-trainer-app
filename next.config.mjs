@@ -7,8 +7,9 @@ const nextConfig = {
     unoptimized: true,
   },
   experimental: {
+    proxyClientMaxBodySize: '50mb',
     serverActions: {
-      bodySizeLimit: '10mb', // Increased from 1mb default to support PDF uploads
+      bodySizeLimit: '50mb', // Increased from 1mb default to support PDF uploads
     },
   },
 }

@@ -106,6 +106,7 @@ export async function processImportJob(jobId: string) {
     }
 
     const result = await response.json()
+    console.log("EDGE Function - Import job processed:", result)
     return { status: "ready", detected: result.detected || 0 }
   } catch (e: any) {
     await supabase
@@ -120,7 +121,6 @@ export async function processImportJob(jobId: string) {
     throw e
   }
 }
-
 
 export async function createImportJob(input: {
   userId: string
@@ -184,23 +184,15 @@ export async function uploadImportFile(input: {
   return { path }
 }
 
-
+// Trigger Edge Function to parse import job
 export async function triggerParseImportJobServer(jobId: string) {
-
-  console.log("triggerParseImportJobServer", jobId)
-  
   const supabase = await createSupabaseServerClient()
   const res = await supabase.functions.invoke('parse-import-job', 
     {
        body: { jobId },
     })
 
-    console.log("triggerParseImportJobServer", res)
-
-
-
-  if (res.error) {
-   
+  if (res.error) {   
     throw new Error(res.error.message ?? `Failed to trigger parse job (${res.response?.status})`)
   }
 
@@ -245,7 +237,8 @@ export async function uploadAndExtractPdf(file: File, userId: string): Promise<Q
         console.log('First 500 chars:', rawText.substring(0, 500))
       } catch (pdfError: any) {
         console.error('PDF extraction error:', pdfError)
-        throw new Error(`Failed to extract text from PDF: ${pdfError.message}`)
+        rawText = null as any
+        //throw new Error(`Failed to extract text from PDF: ${pdfError.message}`)
       }
     } else if (file.type === 'text/plain') {
       rawText = new TextDecoder().decode(buffer)
