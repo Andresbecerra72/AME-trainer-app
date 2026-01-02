@@ -2,59 +2,19 @@
 
 import { useEffect, useRef, useState } from "react"
 import type { QuestionImportJob } from "../types"
-import { triggerParseImportJob } from "../services/questionImport.api"
-import { getImportJob, createImportJob, processImportJob, updateImportJobPath, uploadImportFile } from "../server/questionImport.actions" // Phase 1
+import { getImportJob, uploadAndExtractPdf } from "../server/questionImport.actions"
+import { getSession } from "@/features/auth/services/getSession"
 
-export function useQuestionImportJob(userId: string | null) {
+export function useQuestionImportJob() {
   const [job, setJob] = useState<QuestionImportJob | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const pollRef = useRef<number | null>(null)
 
-  async function startUpload(file: File) {
-    if (!userId) {
-      setError("Missing user session. Please refresh the page and try again.")
-      return
-    }
-
-    setError(null)
-    setIsUploading(true)
-
-    try {
-      // Create job with a temporary placeholder path, updated after upload
-      const created = await createImportJob({
-        userId,
-        filePath: "pending",
-        fileName: file.name,
-        fileMime: file.type,
-      })
-
-      // Upload file to Storage
-      const { path } = await uploadImportFile({ userId, file, jobId: created.id })
-
-      // Update job with real path
-      // (Use client update since job belongs to user)
-      // You can add updateImportJob() in api if you want; inline here for simplicity.
-
-      await updateImportJobPath(path, created.id)
-
-
-      const refreshed = await getImportJob(created.id)
-      setJob(refreshed)
-
-      // Phase 1: call server action to process (PDF only)
-      await processImportJob(created.id)      
-
-      await triggerParseImportJob(created.id)
-
-      // Poll until ready/failed (in case processing async)
-      beginPolling(created.id)
-    } catch (e: any) {
-      setError(e?.message ?? "Upload failed")
-    } finally {
-      setIsUploading(false)
-    }
+  function stopPolling() {
+    if (pollRef.current) window.clearInterval(pollRef.current)
+    pollRef.current = null
   }
 
   function beginPolling(jobId: string) {
@@ -62,20 +22,42 @@ export function useQuestionImportJob(userId: string | null) {
     pollRef.current = window.setInterval(async () => {
       try {
         const latest = await getImportJob(jobId)
+        console.log("Polling import job", latest)
         setJob(latest)
 
         if (latest.status === "ready" || latest.status === "failed") {
           stopPolling()
         }
       } catch {
-        // ignore transient poll failures
+        // ignore transient errors
       }
     }, 1500)
   }
 
-  function stopPolling() {
-    if (pollRef.current) window.clearInterval(pollRef.current)
-    pollRef.current = null
+  async function startUpload(file: File) {
+    setError(null)
+    setIsUploading(true)
+
+    try {
+      const { user } = await getSession()
+      if (!user?.id) throw new Error("Missing session user")
+
+      // Single Server Action handles everything:
+      // 1. Creates job
+      // 2. Uploads to Storage
+      // 3. Extracts text from PDF (server-side)
+      // 4. Triggers Edge Function to parse
+      const result = await uploadAndExtractPdf(file, user.id)
+      
+      setJob(result)
+
+      // Poll for final results
+      beginPolling(result.id)
+    } catch (e: any) {
+      setError(e?.message ?? "Upload failed")
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   useEffect(() => () => stopPolling(), [])

@@ -1,5 +1,3 @@
-/// <reference types="https://deno.land/x/types/index.d.ts" />
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4"
 // -------------------------
 // CORS Headers
@@ -30,6 +28,7 @@ type ImportJob = {
   file_path: string
   file_mime: string | null
   status: string
+  raw_text: string | null
 }
 
 // -------------------------
@@ -39,67 +38,124 @@ function parseQuestionsFromText(raw: string): DraftQuestion[] {
   const text = raw.replace(/\r\n/g, "\n").trim()
   if (!text) return []
 
-  const blocks = text.split(/\n{2,}/g).map((b) => b.trim()).filter(Boolean)
+  // Split by double line breaks or more (questions are separated by blank lines)
+  const blocks = text.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean)
+  console.log(`Found ${blocks.length} blocks to parse`)
+  
   const out: DraftQuestion[] = []
 
-  for (const block of blocks) {
-    const q = block.match(/^(?:Q:|Question:)\s*(.+)$/m)?.[1]?.trim()
-    const a = block.match(/^(?:A\)|A\.|A:)\s*(.+)$/m)?.[1]?.trim()
-    const b = block.match(/^(?:B\)|B\.|B:)\s*(.+)$/m)?.[1]?.trim()
-    const c = block.match(/^(?:C\)|C\.|C:)\s*(.+)$/m)?.[1]?.trim()
-    const d = block.match(/^(?:D\)|D\.|D:)\s*(.+)$/m)?.[1]?.trim()
-    const ans = block.match(/^(?:Answer:|Correct:)\s*([ABCD])\b/m)?.[1] as
-      | "A"
-      | "B"
-      | "C"
-      | "D"
-      | undefined
-
-    if (!q || !a || !b || !c || !d) continue
-
-    out.push({
-      question_text: q,
-      option_a: a,
-      option_b: b,
-      option_c: c,
-      option_d: d,
-      correct_answer: ans ?? null,
-      confidence: ans ? 0.85 : 0.55,
-    })
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]
+    console.log(`\n--- Parsing block ${i + 1} ---`)
+    console.log('Block content:', block.substring(0, 200))
+    
+    // Try Format 1: Multiple choice with options (Q: ... A) B) C) D) Answer:)
+    const mcResult = parseMultipleChoice(block)
+    if (mcResult) {
+      console.log('✓ Parsed as multiple choice')
+      out.push(mcResult)
+      continue
+    }
+    
+    // Try Format 2: Direct answer question (e.g., "3- Question? Answer text.")
+    const directResult = parseDirectAnswer(block)
+    if (directResult) {
+      console.log('✓ Parsed as direct answer')
+      out.push(directResult)
+      continue
+    }
+    
+    console.log('✗ Could not parse block')
   }
 
   return out
 }
 
-// -------------------------
-// PDF text extraction (pdfjs-dist via esm.sh)
-// -------------------------
-async function extractPdfText(pdfBytes: Uint8Array): Promise<string> {
-  const pdfjsLib = await import("https://esm.sh/pdfjs-dist@4.6.82/legacy/build/pdf.mjs")
+// Parse multiple choice format: Q: ... A) ... B) ... C) ... D) ... Answer: X
+function parseMultipleChoice(block: string): DraftQuestion | null {
+  // More flexible regex patterns that handle extra spaces and line breaks
+  const q = block.match(/^(?:\d+[\s\-\.]*)?(?:Q\s*:|Question\s*:)?\s*(.+?)(?=\n|$)/im)?.[1]?.trim()
+  const a = block.match(/^\s*(?:A\s*\)|A\s*\.|A\s*:)\s*(.+?)(?=\n|$)/im)?.[1]?.trim()
+  const b = block.match(/^\s*(?:B\s*\)|B\s*\.|B\s*:)\s*(.+?)(?=\n|$)/im)?.[1]?.trim()
+  const c = block.match(/^\s*(?:C\s*\)|C\s*\.|C\s*:)\s*(.+?)(?=\n|$)/im)?.[1]?.trim()
+  const d = block.match(/^\s*(?:D\s*\)|D\s*\.|D\s*:)\s*(.+?)(?=\n|$)/im)?.[1]?.trim()
+  const ans = block.match(/(?:Answer\s*:|Correct\s*:)\s*([ABCD])\b/im)?.[1]?.toUpperCase() as
+    | "A"
+    | "B"
+    | "C"
+    | "D"
+    | undefined
 
-  // pdfjs in Deno needs a worker disabled
-  // deno-lint-ignore no-explicit-any
-  ;(pdfjsLib as any).GlobalWorkerOptions.workerSrc = ""
-
-  const loadingTask = (pdfjsLib as any).getDocument({ data: pdfBytes })
-  const pdf = await loadingTask.promise
-
-  const texts: string[] = []
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-    const page = await pdf.getPage(pageNum)
-    const content = await page.getTextContent()
-    // deno-lint-ignore no-explicit-any
-    const pageText = content.items.map((it: any) => it.str).join(" ")
-    texts.push(pageText)
+  // Need at least question and all 4 options
+  if (!q || !a || !b || !c || !d) {
+    return null
   }
 
-  return texts.join("\n\n")
+  return {
+    question_text: q,
+    option_a: a,
+    option_b: b,
+    option_c: c,
+    option_d: d,
+    correct_answer: ans ?? null,
+    confidence: ans ? 0.85 : 0.55,
+  }
+}
+
+// Parse direct answer format: "3- Question? Answer text."
+function parseDirectAnswer(block: string): DraftQuestion | null {
+  // Extract question (ends with ?)
+  const questionMatch = block.match(/^(?:\d+[\s\-\.]*)?(.+?\?)/im)
+  if (!questionMatch) return null
+  
+  const question = questionMatch[1].trim()
+  
+  // Extract answer (everything after the question mark, cleaned up)
+  const remainingText = block.substring(questionMatch[0].length).trim()
+  if (!remainingText) return null
+  
+  // Clean up the answer text
+  const answer = remainingText
+    .replace(/^[\s\-\.,:;]+/, '') // Remove leading punctuation
+    .replace(/[\s\.]+$/, '')      // Remove trailing punctuation
+    .trim()
+  
+  if (!answer || answer.length < 2) return null
+  
+  return {
+    question_text: question,
+    option_a: answer,
+    option_b: '---',
+    option_c: '---',
+    option_d: '---',
+    correct_answer: 'A',
+    confidence: 0.70, // Lower confidence for direct answers
+  }
+}
+
+// -------------------------
+// PDF text extraction - SIMPLIFIED for Edge Functions
+// Note: pdfjs-dist requires Node.js canvas which doesn't work in Deno
+// Phase 2: Use external API or client-side extraction
+// -------------------------
+async function extractPdfText(pdfBytes: Uint8Array): Promise<string> {
+  // For now, we'll return a clear error message
+  // TODO: Implement using:
+  // - Client-side extraction (pdfjs in browser)
+  // - External API (PDF.co, Adobe PDF Services)
+  // - Or Cloudflare Workers AI
+  throw new Error(
+    "PDF text extraction in Edge Functions is not yet implemented. " +
+    "Please extract text on client-side using pdf.js and send raw_text directly, " +
+    "or wait for Phase 2 implementation with external PDF API."
+  )
 }
 
 // -------------------------
 // Handler
 // -------------------------
 Deno.serve(async (req: Request) => {
+  console.log("AQUI")
    // Handle preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders })
@@ -144,7 +200,7 @@ Deno.serve(async (req: Request) => {
     // Load job
     const { data: job, error: jobError } = await adminClient
       .from("question_imports")
-      .select("id,user_id,file_path,file_mime,status")
+      .select("id,user_id,file_path,file_mime,status,raw_text")
       .eq("id", jobId)
       .single()
 
@@ -189,17 +245,34 @@ Deno.serve(async (req: Request) => {
     const bytes = new Uint8Array(await fileData.arrayBuffer())
 
     let rawText = ""
-    if (mime.includes("pdf") || j.file_path.toLowerCase().endsWith(".pdf")) {
-      rawText = await extractPdfText(bytes)
+    
+    // Check if raw_text is already provided in the job
+    // (extracted on client-side)
+    if (j.raw_text) {
+      console.log(`Using pre-extracted raw_text: ${j.raw_text.length} characters`)
+      console.log('First 300 chars:', j.raw_text.substring(0, 300))
+      rawText = j.raw_text
+    } else if (mime.includes("pdf") || j.file_path.toLowerCase().endsWith(".pdf")) {
+      // PDF parsing not available in Edge Functions yet
+      throw new Error(
+        "PDF parsing requires client-side extraction. " +
+        "Use pdf.js in the browser to extract text before uploading."
+      )
+    } else if (mime.includes("text/plain")) {
+      // Plain text files can be read directly
+      rawText = new TextDecoder().decode(bytes)
     } else if (mime.startsWith("image/")) {
       // Phase 2: OCR (recommended)
-      // For now fail gracefully with a clear message.
       throw new Error("Image OCR not implemented yet. Phase 2 will add OCR + AI parsing.")
     } else {
       throw new Error(`Unsupported file type: ${mime || "unknown"}`)
     }
 
     const drafts = parseQuestionsFromText(rawText)
+    console.log(`Parser found ${drafts.length} questions`)
+    if (drafts.length > 0) {
+      console.log('First question:', JSON.stringify(drafts[0], null, 2))
+    }
     const stats = {
       detected: drafts.length,
       type: mime.includes("pdf") ? "pdf" : "image",

@@ -1,54 +1,44 @@
 "use client"
 
 import { supabaseBrowserClient } from "@/lib/supabase/client"
-import type { QuestionImportJob } from "../types"
 
-export async function createImportJob(input: {
-  userId: string
-  filePath: string
-  fileName?: string
-  fileMime?: string
-}): Promise<QuestionImportJob> {
-  const { data, error } = await supabaseBrowserClient
-    .from("question_imports")
-    .insert({
-      user_id: input.userId,
-      file_path: input.filePath,
-      file_name: input.fileName ?? null,
-      file_mime: input.fileMime ?? null,
-      status: "pending",
+export async function triggerParseImportJobClient(jobId: string) {
+  
+  const supabase = supabaseBrowserClient
+  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/parse-import-job`
+  const res = await supabase.functions.invoke('parse-import-job', 
+    {
+       body: { name: jobId },
     })
-    .select("*")
-    .single()
 
-  if (error) throw new Error(error.message)
-  return data as QuestionImportJob
+
+
+  if (res.error) {
+   
+    throw new Error(res.error.message ?? `Failed to trigger parse job (${res.response?.status})`)
+  }
+
+  return res.data
 }
 
-export async function getImportJob(jobId: string): Promise<QuestionImportJob> {
-  const { data, error } = await supabaseBrowserClient
-    .from("question_imports")
-    .select("*")
-    .eq("id", jobId)
-    .single()
 
-  if (error) throw new Error(error.message)
-  return data as QuestionImportJob
+export async function triggerParseImportJobTOKEN(jobId: string) {
+  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/parse-import-job`
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.SUPABASE_PUBLISHABLE_DEFAULT_KEY}`,
+      apikey: process.env.SUPABASE_PUBLISHABLE_DEFAULT_KEY || "",
+    },
+    body: JSON.stringify({ jobId }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error ?? `Failed to trigger parse job (${res.status})`)
+  }
+
+  return await res.json()
 }
-
-export async function uploadImportFile(input: {
-  userId: string
-  file: File
-  jobId: string
-}) {
-  const path = `${input.userId}/${input.jobId}/${input.file.name}`
-
-  const { error } = await supabaseBrowserClient.storage
-    .from("question-imports")
-    .upload(path, input.file, { upsert: true })
-
-  if (error) throw new Error(error.message)
-  return { path }
-}
-//sbp_2af83c25c987bfa83ce92043cc8be93bc4af64d0
-//my_token

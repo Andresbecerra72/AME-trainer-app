@@ -53,7 +53,7 @@ export default function AddQuestionPage() {
   const [batchTopic, setBatchTopic] = useState("")
   const [batchDifficulty, setBatchDifficulty] = useState<"easy" | "medium" | "hard">("medium")
 
-  const { job, isUploading, error, startUpload } = useQuestionImportJob(user?.id ?? null)
+  const { job, isUploading, error, startUpload } = useQuestionImportJob()
 
   useEffect(() => {
     loadTopics()
