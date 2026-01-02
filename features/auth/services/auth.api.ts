@@ -47,7 +47,7 @@ export async function updateProfileFullName(userId: string, full_name: string) {
 
   const { data, error } = await supabase
     .from("profiles")
-    .update({ full_name })
+    .update({ display_name: full_name })
     .eq("id", userId)
 
   return { data, error }
