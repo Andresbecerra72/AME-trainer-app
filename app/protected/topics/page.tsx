@@ -24,7 +24,7 @@ const iconMap = {
 const RATING_CONFIG = {
   M: {
     label: "M Rating",
-    description: "Mechanical",
+    description: "Mechanics",
     categories: [
       { id: "SPM", label: "Standard Practices", prefix: "M-SPM" },
       { id: "AF", label: "Airframe", prefix: "M-AF" },
@@ -169,7 +169,21 @@ export default function TopicsPage() {
                 </button>
 
                 {isExpanded && (
-                  <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {/* Study All Button */}
+                    {category.topics.length > 0 && (
+                      <Link 
+                        href={`/protected/topics/study/${selectedRating}-${category.id}`}
+                        className="block"
+                      >
+                        <button className="w-full p-4 bg-primary text-primary-foreground rounded-lg font-semibold text-sm sm:text-base hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
+                          <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
+                          Study this category - {category.topics.reduce((sum: number, t: any) => sum + (t.questionsCount || 0), 0)} questions
+                        </button>
+                      </Link>
+                    )}
+
+                    {/* Topics List */}
                     {category.topics.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">No topics available</p>
                     ) : (

@@ -15,14 +15,14 @@ interface TopicCardProps {
 export function TopicCard({ title, icon: Icon, progress, questionsCount, onClick }: TopicCardProps) {
   return (
     <MobileCard onClick={onClick} className="space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Icon className="w-6 h-6 text-primary" />
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
+        <div className="flex items-start sm:items-center gap-2 sm:gap-3 flex-1 min-w-0">
+          <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg flex-shrink-0">
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-base text-foreground truncate">{title}</h3>
-            <p className="text-sm text-muted-foreground">{questionsCount} questions</p>
+            <h3 className="font-semibold text-sm sm:text-base text-foreground line-clamp-2">{title}</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{questionsCount} questions</p>
           </div>
         </div>
       </div>
