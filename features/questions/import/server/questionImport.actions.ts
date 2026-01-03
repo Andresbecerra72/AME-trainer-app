@@ -109,14 +109,23 @@ export async function processImportJob(jobId: string) {
     console.log("EDGE Function - Import job processed:", result)
     return { status: "ready", detected: result.detected || 0 }
   } catch (e: any) {
-    await supabase
-      .from("question_imports")
-      .update({
-        status: "failed",
-        error: e?.message ?? "Unknown error",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", jobId)
+    // Don't mark as failed if it's a timeout error (504, 503)
+    // The Edge Function might still be processing and will update the status when done
+    const isTimeout = e?.message?.includes('504') || e?.message?.includes('503')
+    
+    if (!isTimeout) {
+      // Only mark as failed for actual errors (not timeouts)
+      await supabase
+        .from("question_imports")
+        .update({
+          status: "failed",
+          error: e?.message ?? "Unknown error",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId)
+    } else {
+      console.log(`Timeout received for job ${jobId}, but processing continues in background`)
+    }
 
     throw e
   }
@@ -200,8 +209,107 @@ export async function triggerParseImportJobServer(jobId: string) {
 }
 
 /**
+ * Upload file metadata with pre-extracted text and trigger parsing
+ * Text extraction is done on the client side for better performance
+ */
+export async function uploadTextExtract(input: {
+  file: File
+  userId: string
+  rawText: string
+  rawPages?: string[] // Array of individual pages for page-by-page processing
+  extractionMethod: 'pdf' | 'ocr'
+}): Promise<QuestionImportJob> {
+  const supabase = await createSupabaseServerClient()
+  
+  try {
+    const hasPages = input.rawPages && input.rawPages.length > 0
+    console.log(`Creating import job with ${input.rawText.length} characters (method: ${input.extractionMethod})`)
+    
+    if (hasPages) {
+      console.log(`📄 Page-by-page mode enabled: ${input.rawPages!.length} pages`)
+    }
+    
+    // 1. Create job with raw_text already provided
+    const job = await createImportJob({
+      userId: input.userId,
+      filePath: "text-extracted-on-client",
+      fileName: input.file.name,
+      fileMime: input.file.type,
+    })
+    
+    // 2. Upload file to Storage (for reference/audit purposes)
+    const arrayBuffer = await input.file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    
+    const path = `${input.userId}/${job.id}/${input.file.name}`
+    const { error: uploadError } = await supabase.storage
+      .from('question-imports')
+      .upload(path, buffer, { upsert: true })
+    
+    if (uploadError) {
+      console.warn("Failed to upload file to storage (non-critical):", uploadError)
+      // Continue anyway - we have the text
+    }
+    
+    // 3. Update job with extracted text, pages array, and metadata
+    const updatePayload: any = {
+      file_path: path,
+      raw_text: input.rawText,
+      stats: {
+        extraction_method: input.extractionMethod,
+        text_length: input.rawText.length,
+        page_count: hasPages ? input.rawPages!.length : 1,
+        extracted_at: new Date().toISOString(),
+        client_side: true,
+      },
+      updated_at: new Date().toISOString()
+    }
+    
+    // Include raw_pages if available (for page-by-page processing)
+    if (hasPages) {
+      updatePayload.raw_pages = input.rawPages
+    }
+    
+    const { data: updatedJob, error: updateError } = await supabase
+      .from('question_imports')
+      .update(updatePayload)
+      .eq('id', job.id)
+      .select('*')
+      .single()
+    
+    if (updateError) throw new Error(updateError.message)
+    
+    // 4. Mark job as 'processing' before triggering Edge Function
+    await supabase
+      .from('question_imports')
+      .update({ 
+        status: 'processing',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', job.id)
+    
+    console.log(`Job ${job.id} created with text${hasPages ? ' and pages' : ''}, triggering parser...`)
+    
+    // 5. Trigger Edge Function to parse the extracted text (fire and forget)
+    // Don't await - let it process in background to avoid HTTP 504 timeout
+    // The client polling will pick up the result when ready
+    processImportJob(job.id).catch(err => {
+      console.error(`Background processing failed for job ${job.id}:`, err)
+      // Timeout errors (504) are expected and job will be updated by Edge Function
+      // Other errors will be visible in job status via polling
+    })
+    
+    return updatedJob as QuestionImportJob
+  } catch (error: any) {
+    console.error('Error in uploadTextExtract:', error)
+    throw new Error(error?.message ?? 'Failed to process extracted text')
+  }
+}
+
+/**
+ * @deprecated Use uploadTextExtract instead - text extraction should be done on client side
  * Upload PDF, extract text, and process in one action
- * This is the recommended approach for optimal performance
+ * This is kept for backward compatibility
  */
 export async function uploadAndExtractPdf(file: File, userId: string): Promise<QuestionImportJob> {
   const supabase = await createSupabaseServerClient()
@@ -232,7 +340,7 @@ export async function uploadAndExtractPdf(file: File, userId: string): Promise<Q
     if (file.type === 'application/pdf') {
       console.log('Extracting text from PDF...')
       try {
-        rawText = await extractPdfText(buffer)
+        rawText = null as any //await extractPdfText(buffer)
         console.log(`Extracted ${rawText.length} characters from PDF`)
         console.log('First 500 chars:', rawText.substring(0, 500))
       } catch (pdfError: any) {

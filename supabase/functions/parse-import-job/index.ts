@@ -28,7 +28,8 @@ type ImportJob = {
   file_path: string
   file_mime: string | null
   status: string
-  raw_text: string | null
+  raw_text: string
+  raw_pages?: any // JSONB array of pages
 }
 
 // -------------------------
@@ -134,125 +135,74 @@ function parseDirectAnswer(block: string): DraftQuestion | null {
 }
 
 // -------------------------
-// PDF text extraction - SIMPLIFIED for Edge Functions
-// Note: pdfjs-dist requires Node.js canvas which doesn't work in Deno
-// Phase 2: Use external API or client-side extraction
+// OpenAI Prompt
 // -------------------------
-async function extractPdfText(pdfBytes: Uint8Array): Promise<string> {
-  // For now, we'll return a clear error message
-  // TODO: Implement using:
-  // - Client-side extraction (pdfjs in browser)
-  // - External API (PDF.co, Adobe PDF Services)
-  // - Or Cloudflare Workers AI
-  throw new Error(
-    "PDF text extraction in Edge Functions is not yet implemented. " +
-    "Please extract text on client-side using pdf.js and send raw_text directly, " +
-    "or wait for Phase 2 implementation with external PDF API."
-  )
-}
-
 function getPromptText(): string {
   return `
-**IMPORTANTE: Lee y procesa TODAS las páginas del documento completo.**
+**INSTRUCCIÓN CRÍTICA: Debes extraer TODAS las preguntas del documento completo.**
 
-Extrae TODAS las preguntas de selección múltiple de TODO el contenido proporcionado (todas las páginas del PDF o documento). No te detengas en la primera página, continúa extrayendo hasta el final.
+Eres un experto en extraer preguntas de exámenes de cualquier formato. Tu tarea es identificar y estructurar CADA pregunta que encuentres.
 
-Reglas:
-- Cada pregunta debe tener el siguiente formato:
-  {
-    "question_text": "What is the best angle for a drill to cut aluminum?",
-    "option_a": "80°",
-    "option_b": "90°",
-    "option_c": "70°",
-    "option_d": "60°",
-    "correct_answer": "B",
-    "explanation": "Option B is correct because..."
-  }
-- explanation es opcional pero recomendado.
-- Si no hay respuesta explícita en el texto, infiere la más probable y pon explanation indicando que fue inferida.
-- Si faltan opciones, crea distractores plausibles basados en el tema.
-- Mantén el idioma original del texto.
-- NO incluyas markdown, ni texto adicional fuera del JSON.
-- PROCESA TODO EL DOCUMENTO COMPLETO, no solo la primera página.
+IMPORTANTE: Las preguntas pueden venir en MUCHOS formatos diferentes:
+- Con numeración: "1. ¿Pregunta?" o "1) ¿Pregunta?" o "Q1: ¿Pregunta?"
+- Con opciones etiquetadas: A) B) C) D) o a) b) c) d) o A. B. C. D.
+- Sin etiquetas claras pero con múltiples opciones listadas
+- Respuestas al final: "Respuesta: A" o "Correcta: A" o "R: A"
+- Formato de párrafo continuo
 
-Responde ÚNICAMENTE con un objeto JSON con una clave "items" que contenga el array de TODAS las preguntas encontradas:
+EJEMPLOS de formatos que DEBES reconocer:
+
+Formato 1 (con etiquetas claras):
+1. ¿Cuál es la capital de Francia?
+A) Londres
+B) París
+C) Madrid
+D) Roma
+Respuesta: B
+
+Formato 2 (opciones listadas sin etiquetas):
+¿Cuál es la capital de Francia?
+Londres
+París
+Madrid
+Roma
+Correcta: París
+
+Formato 3 (texto continuo):
+1. ¿Cuál es la capital de Francia? a) Londres b) París c) Madrid d) Roma. Respuesta: b
+
+Formato 4 (sin respuesta explícita):
+¿Cuál es la capital de Francia?
+- Londres
+- París
+- Madrid
+- Roma
+
+FORMATO DE SALIDA (JSON estricto):
 {
-  "items": [ ... todas las preguntas extraídas de todo el documento ... ]
-}
-`.trim();
-}
-
-function getPrompt(data: string, raw_text: string | null): string {
-  let option = " Archivo:\n      \"\"\"Revisa el archivo adjunto para extraer las preguntas.\"\"\"\n  ";
-
-  if (data === 'texto' && raw_text) {
-    option = `\n  Texto:\n      """${raw_text}"""\n  `;
-  }
- 
-  const prompt = `
-Extrae preguntas de selección múltiple del ${data}. Devuelve SOLO JSON válido.
-
-Reglas:
-- Cada pregunta debe tener el siguiente formato:
-  {
-    "question_text": "What is the best angle for a drill to cut aluminum?",
-    "option_a": "80°",
-    "option_b": "90°",
-    "option_c": "70°",
-    "option_d": "60°",
-    "correct_answer": "B",
-    "explanation": "Option B is correct because..."
-  }
-- explanation es opcional.
-- Si no hay respuesta explícita, infiere la más probable y pon explanation indicando que fue inferida.
-- Si no hay respuestas adicionales, crea distractores plausibles.
-- Mantén el idioma original del texto.
-- No incluyas markdown, ni texto adicional.
-Responde con un objeto JSON con una clave "items" que contenga una lista de preguntas extraídas:
-{
-  "items": [ ... preguntas ... ]
-}
-
-${option}
-`.trim();
-  
-  return prompt;
-}
-
-type MessageContent = string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
-
-function getOpenAiContent(
-  raw_text: string | null, 
-  file_url: string | null,
-  file_mime: string | null
-): MessageContent {
-  // Si ya tenemos el texto extraído, usarlo directamente
-  if (raw_text) {
-    return getPromptText() + `\n\nTexto a procesar:\n"""\n${raw_text}\n"""`;
-  }
-  
-  // Si tenemos un archivo (PDF o imagen), usar formato multipart según docs de OpenAI
-  if (file_url) {
-    const isImage = file_mime?.startsWith('image/');
-    const isPdf = file_mime?.includes('pdf') || file_url.toLowerCase().endsWith('.pdf');
-    
-    // Para imágenes y PDFs, OpenAI requiere formato array con image_url
-    if (isPdf) {
-      return [
-        { type: "text", text: getPromptText() },
-        { type: "input_file", file_url }
-      ];
+  "items": [
+    {
+      "question_text": "¿Cuál es la capital de Francia?",
+      "option_a": "Londres",
+      "option_b": "París",
+      "option_c": "Madrid",
+      "option_d": "Roma",
+      "correct_answer": "B",
+      "explanation": "París es la capital de Francia"
     }
-   
-    return [
-      { type: "text", text: getPromptText() },
-      { type: "image_url", image_url: { url: file_url } }
-    ];
-    
-  }
-  
-  // Fallback: solo el prompt
-  return getPromptText();
+  ]
+}
+
+REGLAS OBLIGATORIAS:
+1. EXTRAE TODAS las preguntas - no te detengas después de unas pocas
+2. Si faltan opciones, créalas basándote en el contexto
+3. Si no hay respuesta correcta explícita, infiere la más lógica (indica en explanation: "Inferida del contexto")
+4. Mantén el idioma original
+5. NO incluyas markdown
+6. Asegúrate de que correct_answer sea una letra: "A", "B", "C" o "D"
+
+El array "items" debe contener TODAS las preguntas del texto completo.
+`.trim();
 }
 
 // -------------------------
@@ -310,7 +260,7 @@ Deno.serve(async (req: Request) => {
     // Load job
     const { data: job, error: jobError } = await adminClient
       .from("question_imports")
-      .select("id,user_id,file_path,file_mime,status,raw_text")
+      .select("id,user_id,file_path,file_mime,status,raw_text,raw_pages")
       .eq("id", jobId)
       .single()
 
@@ -321,11 +271,27 @@ Deno.serve(async (req: Request) => {
 
     const j = job as ImportJob
 
-    // Only owner can trigger, OR admin roles (optional)
-    // Here: owner only (simpler). If you want admin access, we can add role check.
+    // Only owner can trigger
     if (j.user_id !== user.id) {
       return new Response(JSON.stringify({ error: "Forbidden" }),
        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
+
+    // Validate raw_text is provided
+    if (!j.raw_text || j.raw_text.trim().length === 0) {
+      await adminClient
+        .from("question_imports")
+        .update({ 
+          status: "failed", 
+          error: "No text provided. Text extraction must be done on the client side before calling this function.",
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", jobId);
+
+      return new Response(
+        JSON.stringify({ error: "raw_text is required and must not be empty" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Mark processing
@@ -334,186 +300,296 @@ Deno.serve(async (req: Request) => {
       .update({ status: "processing", updated_at: new Date().toISOString() })
       .eq("id", jobId)
 
-    console.log(`Processing job with file path: ${j.file_path}`)    
+    // Check if we should process page by page
+    const pages = j.raw_pages && Array.isArray(j.raw_pages) ? j.raw_pages : null
+    const usePageByPage = pages && pages.length > 0
+    
+    console.log(`Processing job ${jobId} with ${j.raw_text.length} characters of text`)
+    
+    if (usePageByPage) {
+      console.log(`📄 Page-by-page mode: ${pages.length} pages detected`)
+      console.log(`Pages sizes: ${pages.map((p: string, i: number) => `P${i+1}:${p.length}ch`).join(', ')}`)
+    } else {
+      console.log(`📝 Single text mode: processing as one chunk`)
+      console.log(`\n=== FIRST 500 CHARS ===`)
+      console.log(j.raw_text.substring(0, 500))
+      console.log(`\n=== MIDDLE 500 CHARS (around position ${Math.floor(j.raw_text.length / 2)}) ===`)
+      console.log(j.raw_text.substring(Math.floor(j.raw_text.length / 2) - 250, Math.floor(j.raw_text.length / 2) + 250))
+      console.log(`\n=== LAST 300 CHARS ===`)
+      console.log(j.raw_text.substring(j.raw_text.length - 300))
+    }
+    console.log(`\n===================`)
    
-    let drafts: DraftQuestion[] = [];
-    let fileUrl: string | null = null;
+    let drafts: DraftQuestion[] = []
+    let totalTokensUsed = 0
 
-    // Si no hay raw_text, generar URL firmada del archivo en Storage
-    if (!j.raw_text && j.file_path) {
-      const bucket = "question-imports";
-      const { data: urlData, error: urlError } = await adminClient.storage
-        .from(bucket)
-        .createSignedUrl(j.file_path, 3600); // URL válida por 1 hora
+    // Process page by page if available, otherwise process as single chunk
+    if (usePageByPage) {
+      console.log(`\n🔄 Starting page-by-page processing (parallel batches)...`)
+      
+      // Process pages in parallel batches to reduce total time
+      // Batch size of 5 = ~18 sec per batch for 21 pages = ~4 batches = ~72 seconds total
+      const BATCH_SIZE = 5 // Process 5 pages at a time
+      const batches: number[][] = []
+      
+      // Split pages into batches
+      for (let i = 0; i < pages.length; i += BATCH_SIZE) {
+        batches.push(Array.from({ length: Math.min(BATCH_SIZE, pages.length - i) }, (_, j) => i + j))
+      }
+      
+      console.log(`Processing ${pages.length} pages in ${batches.length} batches of ${BATCH_SIZE}`)
+      
+      // Process each batch in parallel
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex]
+        console.log(`\n📦 Batch ${batchIndex + 1}/${batches.length}: Processing pages ${batch.map(i => i + 1).join(', ')}`)
+        
+        // Process all pages in this batch in parallel
+        const batchPromises = batch.map(async (pageIndex) => {
+          const pageText = pages[pageIndex]
+          const pageNum = pageIndex + 1
+          
+          console.log(`--- Page ${pageNum}/${pages.length} (${pageText.length} chars) ---`)
+          
+          // Prepare content for OpenAI
+          const promptWithText = getPromptText() + `\n\nTexto a procesar (Página ${pageNum} de ${pages.length}):\n"""\n${pageText}\n"""`
+          
+          const estimatedInputTokens = Math.ceil(pageText.length / 4) + 300
+          const model = "gpt-4o-mini" // Use mini for individual pages (faster + cheaper)
+          const maxTokens = 4096
+          
+          console.log(`Page ${pageNum}: ~${estimatedInputTokens} input tokens, model: ${model}`)
+          
+          try {
+            const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${OPENAI_API_KEY}`,
+              },
+              body: JSON.stringify({
+                model,
+                messages: [
+                  { 
+                    role: "system", 
+                    content: "You are an expert at extracting exam questions from ANY format. Extract ALL questions from this page, regardless of formatting. Be flexible with format recognition but strict with JSON output. Maintain original language." 
+                  },
+                  { role: "user", content: promptWithText },
+                ],
+                response_format: { type: "json_object" },
+                temperature: 0.1,
+                max_tokens: maxTokens,
+              }),
+            })
 
-      if (urlError || !urlData?.signedUrl) {
-        console.error("Failed to generate signed URL:", urlError);
+            if (!openaiRes.ok) {
+              const errText = await openaiRes.text()
+              console.error(`Page ${pageNum} OpenAI error:`, errText)
+              return { pageNum, questions: [], tokens: 0 }
+            }
+
+            const openaiJson = await openaiRes.json()
+            const tokensUsed = openaiJson.usage?.total_tokens || 0
+            
+            const outputText = openaiJson.choices?.[0]?.message?.content
+            
+            if (!outputText) {
+              console.warn(`Page ${pageNum}: No output from OpenAI`)
+              return { pageNum, questions: [], tokens: tokensUsed }
+            }
+
+            let parsed: any
+            try {
+              parsed = JSON.parse(outputText)
+            } catch (parseError) {
+              console.error(`Page ${pageNum} JSON parse error:`, parseError)
+              return { pageNum, questions: [], tokens: tokensUsed }
+            }
+
+            const items = Array.isArray(parsed) ? parsed : (parsed.items || [])
+            if (Array.isArray(items) && items.length > 0) {
+              console.log(`✓ Page ${pageNum}: Extracted ${items.length} questions`)
+              return { pageNum, questions: items as DraftQuestion[], tokens: tokensUsed }
+            } else {
+              console.log(`⚠ Page ${pageNum}: No questions found`)
+              return { pageNum, questions: [], tokens: tokensUsed }
+            }
+          } catch (pageError: any) {
+            console.error(`Page ${pageNum} processing error:`, pageError.message)
+            return { pageNum, questions: [], tokens: 0 }
+          }
+        })
+        
+        // Wait for all pages in this batch to complete
+        const batchResults = await Promise.all(batchPromises)
+        
+        // Accumulate results
+        for (const result of batchResults) {
+          drafts.push(...result.questions)
+          totalTokensUsed += result.tokens
+        }
+        
+        console.log(`✓ Batch ${batchIndex + 1} complete: ${drafts.length} total questions so far`)
+      }
+      
+      console.log(`\n✓ Page-by-page processing complete: ${drafts.length} total questions from ${pages.length} pages`)
+      console.log(`Total tokens used: ${totalTokensUsed}`)
+      
+    } else {
+      // Original single-chunk processing
+      const promptWithText = getPromptText() + `\n\nTexto a procesar:\n"""\n${j.raw_text}\n"""`
+
+      console.log('Sending text to OpenAI')
+      console.log('Text length:', j.raw_text.length, 'characters')
+      console.log(`Estimated tokens: ~${Math.ceil(j.raw_text.length / 4)} (text) + ~300 (prompt) = ~${Math.ceil(j.raw_text.length / 4) + 300} total`)
+
+      const estimatedInputTokens = Math.ceil(j.raw_text.length / 4) + 300
+      let model = "gpt-4-turbo-preview"
+      let maxTokens = 4096
+      
+      if (estimatedInputTokens > 30000) {
+        console.log('Large document detected, using gpt-4o for higher output capacity')
+        model = "gpt-4o"
+        maxTokens = 16000
+      }
+
+      console.log(`Using model: ${model} with max_tokens: ${maxTokens}`)
+
+      const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { 
+              role: "system", 
+              content: "You are an expert at extracting exam questions from ANY format. Your job is to identify EVERY question in the document, regardless of formatting. Questions may be numbered, bulleted, in paragraphs, or poorly formatted. Extract them ALL and structure them consistently. Be flexible with format recognition but strict with JSON output. If you see text that looks like questions with multiple options, extract it. Maintain original language." 
+            },
+            { role: "user", content: promptWithText },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.1,
+          max_tokens: maxTokens,
+        }),
+      })
+
+      if (!openaiRes.ok) {
+        const errText = await openaiRes.text()
+        console.error("OpenAI API error:", errText)
         await adminClient
           .from("question_imports")
           .update({ 
             status: "failed", 
-            error: `Failed to generate file URL: ${urlError?.message || 'Unknown error'}`,
+            error: `OpenAI API failed: ${errText}`,
             updated_at: new Date().toISOString()
           })
-          .eq("id", jobId);
+          .eq("id", jobId)
         
         return new Response(
-          JSON.stringify({ error: "Failed to generate file URL", details: urlError?.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+          JSON.stringify({ error: "OpenAI request failed", details: errText }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        )
       }
 
-      fileUrl = urlData.signedUrl;
-      console.log("Generated signed URL for file");
-    }
-
-    // Preparar el modelo según el tipo de contenido
-    // Para PDFs e imágenes, necesitamos GPT-4o (mejor soporte para PDFs multipágina)
-    const needsVision = !j.raw_text && (j.file_mime?.startsWith('image/') || j.file_mime?.includes('pdf'));
-    const model = needsVision ? "gpt-4o" : "gpt-4-turbo-preview";
-
-    console.log(`Using model: ${model}, needsVision: ${needsVision}`);
-
-    // Llamamos a la API de OpenAI (Chat Completions)
-    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { 
-            role: "system", 
-            content: "You are a precise data extraction engine. You extract ALL educational questions from the ENTIRE document (all pages). You read and process complete PDF documents page by page and return all questions found in valid JSON format. Always maintain the original language of the content." 
-          },
-          { role: "user", content: getOpenAiContent(j.raw_text, fileUrl, j.file_mime) },
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.2,
-        max_tokens: 4096, // Máximo soportado por gpt-4o
-      }),
-    });
-
-    if (!openaiRes.ok) {
-      const errText = await openaiRes.text();
-      console.error("OpenAI API error:", errText);
-      await adminClient
-        .from("question_imports")
-        .update({ 
-          status: "failed", 
-          error: `OpenAI API failed: ${errText}`,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", jobId);
+      const openaiJson = await openaiRes.json()
+      totalTokensUsed = openaiJson.usage?.total_tokens || 0
+      console.log("OpenAI response:", JSON.stringify(openaiJson, null, 2))
       
-      return new Response(
-        JSON.stringify({ error: "OpenAI request failed", details: errText }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+      const outputText = openaiJson.choices?.[0]?.message?.content
 
-    const openaiJson = await openaiRes.json();
-    console.log("OpenAI response:", JSON.stringify(openaiJson, null, 2));
-    
-    // En Chat Completions, la respuesta viene en choices[0].message.content
-    const outputText = openaiJson.choices?.[0]?.message?.content;
+      if (!outputText) {
+        await adminClient
+          .from("question_imports")
+          .update({ 
+            status: "failed", 
+            error: "No content in OpenAI response",
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", jobId)
+        
+        return new Response(
+          JSON.stringify({ error: "No output from OpenAI", response: openaiJson }), 
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        )
+      }
 
-    if (!outputText) {
-      await adminClient
-        .from("question_imports")
-        .update({ 
-          status: "failed", 
-          error: "No content in OpenAI response",
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", jobId);
-      
-      return new Response(
-        JSON.stringify({ error: "No output from OpenAI", response: openaiJson }), 
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+      console.log("OpenAI output text:", outputText.substring(0, 500))
 
-    console.log("OpenAI output text:", outputText.substring(0, 500));
+      let parsed: any
+      try {
+        parsed = JSON.parse(outputText)
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError)
+        
+        const finishReason = openaiJson.choices?.[0]?.finish_reason
+        const isTruncated = finishReason === "length"
+        
+        const errorMsg = isTruncated 
+          ? `El documento es muy largo y la respuesta fue truncada (límite de ${maxTokens} tokens alcanzado). Preguntas extraídas hasta donde alcanzó el modelo. Para procesar documentos más grandes, considera dividir el PDF en archivos más pequeños.`
+          : "El modelo no retornó JSON válido"
+        
+        await adminClient
+          .from("question_imports")
+          .update({ 
+            status: "failed", 
+            error: errorMsg,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", jobId)
+        
+        return new Response(
+          JSON.stringify({ 
+            error: errorMsg, 
+            raw: outputText.substring(0, 1000),
+            finish_reason: finishReason,
+            is_truncated: isTruncated
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        )
+      }
 
-    let parsed: any;
-    try {
-      parsed = JSON.parse(outputText);
-    } catch (parseError) {
-      console.error("JSON parse error:", parseError);
-      
-      // Verificar si el JSON está truncado (finish_reason = length)
-      const finishReason = openaiJson.choices?.[0]?.finish_reason;
-      const isTruncated = finishReason === "length";
-      
-      const errorMsg = isTruncated 
-        ? "El documento es muy largo. El modelo alcanzó el límite de tokens. Intenta dividir el PDF en archivos más pequeños (máximo 50-60 preguntas por archivo)."
-        : "El modelo no retornó JSON válido";
-      
-      await adminClient
-        .from("question_imports")
-        .update({ 
-          status: "failed", 
-          error: errorMsg,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", jobId);
-      
-      return new Response(
-        JSON.stringify({ 
-          error: errorMsg, 
-          raw: outputText.substring(0, 1000),
-          finish_reason: finishReason,
-          is_truncated: isTruncated
-        }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+      const items = Array.isArray(parsed) ? parsed : (parsed.items || [])
+      if (!Array.isArray(items) || items.length === 0) {
+        await adminClient
+          .from("question_imports")
+          .update({ 
+            status: "failed", 
+            error: "No questions extracted from text",
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", jobId)
 
-    const items = Array.isArray(parsed) ? parsed : (parsed.items || []);
-    if (!Array.isArray(items) || items.length === 0) {
-      await adminClient
-        .from("question_imports")
-        .update({ 
-          status: "failed", 
-          error: "No questions extracted from text",
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", jobId);
+        return new Response(
+          JSON.stringify({ error: "No questions extracted", parsed }), 
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        )
+      }
 
-      return new Response(
-        JSON.stringify({ error: "No questions extracted", parsed }), 
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    drafts = items as DraftQuestion[];
-    console.log(`Successfully extracted ${drafts.length} questions`);
-
-    const mime = j.file_mime ?? "";
-    
-    // Log first question for debugging
-    if (drafts.length > 0) {
-      console.log('First question:', JSON.stringify(drafts[0], null, 2));
+      drafts = items as DraftQuestion[]
     }
     
-    // Determine file type for stats
-    let fileType = "text";
+    console.log(`Successfully extracted ${drafts.length} questions`)
+
+    // Determine file type for stats (based on mime or file path)
+    const mime = j.file_mime ?? ""
+    let fileType = "text"
     if (mime.includes("pdf") || j.file_path.toLowerCase().endsWith(".pdf")) {
-      fileType = "pdf";
+      fileType = "pdf"
     } else if (mime.startsWith("image/")) {
-      fileType = "image";
+      fileType = "image"
     }
     
     const stats = {
       detected: drafts.length,
       type: fileType,
-      parser: "openai_chat_completions",
-      model,
-      used_vision: needsVision,
-      had_raw_text: !!j.raw_text,
+      parser: usePageByPage ? "openai_page_by_page" : "openai_chat_completions",
+      processing_mode: usePageByPage ? "page_by_page" : "single_chunk",
+      total_pages: usePageByPage && pages ? pages.length : 1,
+      text_length: j.raw_text.length,
+      total_tokens_used: totalTokensUsed,
       processed_at: new Date().toISOString(),
     };
 

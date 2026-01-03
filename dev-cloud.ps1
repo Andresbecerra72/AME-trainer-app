@@ -34,7 +34,11 @@ Write-Host ""
 
 # Stop local Supabase if running
 Write-Host "[~] Deteniendo Supabase local (si esta corriendo)..." -ForegroundColor Yellow
-npx supabase stop 2>$null | Out-Null
+try {
+    npx supabase stop 2>&1 | Out-Null
+} catch {
+    Write-Host "[i] No hay instancia local corriendo o Supabase CLI no disponible" -ForegroundColor Gray
+}
 
 if (-not $NoStart) {
     Write-Host ""

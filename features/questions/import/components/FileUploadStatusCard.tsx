@@ -7,11 +7,33 @@ import type { QuestionImportJob } from "../types"
 type Props = {
   job: QuestionImportJob | null
   isUploading: boolean
+  isExtracting?: boolean
+  extractionProgress?: string
   error: string | null
 }
 
-export function FileUploadStatusCard({ job, isUploading, error }: Props) {
-  if (!job && !isUploading && !error) return null
+export function FileUploadStatusCard({ job, isUploading, isExtracting, extractionProgress, error }: Props) {
+  if (!job && !isUploading && !isExtracting && !error) return null
+
+  // Extracting text on client side
+  if (isExtracting) {
+    return (
+      <MobileCard className="p-6 bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800">
+        <div className="flex items-start gap-4">
+          <Loader2 className="w-6 h-6 text-purple-600 dark:text-purple-400 animate-spin flex-shrink-0 mt-1" />
+          <div className="flex-1 space-y-2">
+            <p className="font-semibold text-purple-900 dark:text-purple-100">Extracting text from file...</p>
+            <p className="text-sm text-purple-700 dark:text-purple-300">
+              {extractionProgress || "Reading document content..."}
+            </p>
+            <div className="w-full bg-purple-200 dark:bg-purple-900 rounded-full h-2 overflow-hidden">
+              <div className="bg-purple-600 dark:bg-purple-400 h-full w-1/2 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </MobileCard>
+    )
+  }
 
   // Uploading state
   if (isUploading) {
@@ -20,12 +42,12 @@ export function FileUploadStatusCard({ job, isUploading, error }: Props) {
         <div className="flex items-start gap-4">
           <Loader2 className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0 mt-1" />
           <div className="flex-1 space-y-2">
-            <p className="font-semibold text-blue-900 dark:text-blue-100">Uploading file...</p>
+            <p className="font-semibold text-blue-900 dark:text-blue-100">Uploading to server...</p>
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              Please wait while we upload and process your document.
+              {extractionProgress || "Sending extracted text for processing..."}
             </p>
             <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2 overflow-hidden">
-              <div className="bg-blue-600 dark:bg-blue-400 h-full w-1/3 animate-pulse"></div>
+              <div className="bg-blue-600 dark:bg-blue-400 h-full w-2/3 animate-pulse"></div>
             </div>
           </div>
         </div>
@@ -40,8 +62,8 @@ export function FileUploadStatusCard({ job, isUploading, error }: Props) {
         <div className="flex items-start gap-4">
           <XCircle className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-1" />
           <div className="flex-1 space-y-2">
-            <p className="font-semibold text-red-900 dark:text-red-100">Upload Failed</p>
-            <p className="text-sm text-red-700 dark:text-red-300">
+            <p className="font-semibold text-red-900 dark:text-red-100">Processing Failed</p>
+            <p className="text-sm text-red-700 dark:text-red-300 whitespace-pre-line">
               {error || job?.error || "An error occurred while processing your file."}
             </p>
             <p className="text-xs text-red-600 dark:text-red-400">
@@ -60,9 +82,9 @@ export function FileUploadStatusCard({ job, isUploading, error }: Props) {
         <div className="flex items-start gap-4">
           <Loader2 className="w-6 h-6 text-yellow-600 dark:text-yellow-400 animate-spin flex-shrink-0 mt-1" />
           <div className="flex-1 space-y-2">
-            <p className="font-semibold text-yellow-900 dark:text-yellow-100">Processing document...</p>
+            <p className="font-semibold text-yellow-900 dark:text-yellow-100">Parsing questions...</p>
             <p className="text-sm text-yellow-700 dark:text-yellow-300">
-              Extracting text and parsing questions from your file.
+              Using AI to extract questions from the document text.
             </p>
             {job.file_name && (
               <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">

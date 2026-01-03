@@ -12,6 +12,8 @@ const nextConfig = {
       bodySizeLimit: '50mb', // Increased from 1mb default to support PDF uploads
     },
   },
+  // Turbopack config (empty to silence warning)
+  turbopack: {},
 }
 
 export default nextConfig

@@ -33,3 +33,6 @@ lerna-debug.log*
 
 # Archivos de pruebas generados
 coverage
+
+# PDF.js worker (generated automatically)
+public/pdf-worker/

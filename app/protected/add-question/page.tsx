@@ -53,7 +53,7 @@ export default function AddQuestionPage() {
   const [batchTopic, setBatchTopic] = useState("")
   const [batchDifficulty, setBatchDifficulty] = useState<"easy" | "medium" | "hard">("medium")
 
-  const { job, isUploading, error, startUpload } = useQuestionImportJob()
+  const { job, isUploading, isExtracting, extractionProgress, error, startUpload } = useQuestionImportJob()
 
   useEffect(() => {
     loadTopics()
@@ -400,16 +400,16 @@ export default function AddQuestionPage() {
                       // Reset input to allow same file selection again
                       e.target.value = ''
                     }}
-                    disabled={!user?.id || isUploading}
+                    disabled={!user?.id || isUploading || isExtracting}
                   />
                   <label htmlFor="file-upload">
                     <PrimaryButton 
                       type="button" 
                       onClick={() => document.getElementById("file-upload")?.click()} 
                       className="h-12 px-8 text-base"
-                      disabled={!user?.id || isUploading}
+                      disabled={!user?.id || isUploading || isExtracting}
                     >
-                      {isUploading ? "Uploading..." : "Choose File"}
+                      {isExtracting ? "Extracting..." : isUploading ? "Uploading..." : "Choose File"}
                     </PrimaryButton>
                   </label>
                 </MobileCard>
@@ -421,10 +421,13 @@ export default function AddQuestionPage() {
                       <p className="font-medium text-foreground">How it works:</p>
                       <ul className="list-disc list-inside space-y-1">
                         <li>Upload your PDF or image file</li>
-                        <li>Text will be extracted automatically</li>
-                        <li>Questions will be parsed from the text</li>
+                        <li>Text extraction happens in your browser (fast & private)</li>
+                        <li>AI parses questions from the extracted text</li>
                         <li>Review and edit before submitting</li>
                       </ul>
+                      <p className="text-sm text-muted-foreground mt-3">
+                        <strong>Supported formats:</strong> PDF (text-based), JPG, PNG
+                      </p>
                     </div>
                   </div>
                 </MobileCard>
@@ -432,7 +435,13 @@ export default function AddQuestionPage() {
             )}
 
             {/* Status Card */}
-            <FileUploadStatusCard job={job} isUploading={isUploading} error={error} />
+            <FileUploadStatusCard 
+              job={job} 
+              isUploading={isUploading} 
+              isExtracting={isExtracting}
+              extractionProgress={extractionProgress}
+              error={error} 
+            />
 
             {/* Review Card - Only show when ready */}
             {job?.status === "ready" && job.result && job.result.length > 0 && (
