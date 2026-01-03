@@ -27,5 +27,12 @@ export default async function ExamRunPage({
     redirect("/protected/exam/setup")
   }
 
-  return <ExamRunClient questions={questions} timerEnabled={timerEnabled} questionCount={questionCount} />
+  return (
+    <ExamRunClient
+      questions={questions}
+      timerEnabled={timerEnabled}
+      questionCount={questionCount}
+      topicIds={topicIds}
+    />
+  )
 }

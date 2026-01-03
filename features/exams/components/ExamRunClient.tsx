@@ -17,16 +17,21 @@ type Question = {
   option_d: string
   correct_answer?: string
   topic_id?: string
+  topics?: {
+    name: string
+  }
 }
 
 export default function ExamRunClient({
   questions,
   timerEnabled,
   questionCount,
+  topicIds,
 }: {
   questions: Question[]
   timerEnabled: boolean
   questionCount: number
+  topicIds?: string[]
 }) {
   const router = useRouter()
   const [currentQuestion, setCurrentQuestion] = useState(0)
@@ -73,6 +78,61 @@ export default function ExamRunClient({
   }
 
   const handleSubmit = () => {
+    const timeSpent = Math.floor((Date.now() - Date.now()) / 1000 / 60) // Calcular tiempo real si es necesario
+    let correct = 0
+    const results: { questionId: string; userAnswer: string; correctAnswer: string; isCorrect: boolean }[] = []
+    const topicPerformanceMap = new Map<string, { correct: number; total: number; topicName: string }>()
+
+    questions.forEach((q, idx) => {
+      const userAnswer = answers[idx] || ""
+      const correctAnswer = q.correct_answer || ""
+      const isCorrect = userAnswer === correctAnswer
+      if (isCorrect) correct++
+      results.push({
+        questionId: q.id,
+        userAnswer,
+        correctAnswer,
+        isCorrect,
+      })
+
+      // Calcular performance por topic
+      const topicId = q.topic_id || "unknown"
+      const topicName = q.topics?.name || "Unknown Topic"
+      if (!topicPerformanceMap.has(topicId)) {
+        topicPerformanceMap.set(topicId, { correct: 0, total: 0, topicName })
+      }
+      const topicStats = topicPerformanceMap.get(topicId)!
+      topicStats.total++
+      if (isCorrect) topicStats.correct++
+    })
+
+    // Convertir Map a array para topicPerformance
+    const topicPerformance = Array.from(topicPerformanceMap.entries()).map(([topicId, stats]) => ({
+      topic: stats.topicName,
+      correct: stats.correct,
+      total: stats.total,
+      percentage: Math.round((stats.correct / stats.total) * 100),
+    }))
+
+    const examResults = {
+      score: Math.round((correct / questions.length) * 100),
+      totalQuestions: questions.length,
+      correctAnswers: correct,
+      wrongAnswers: questions.length - correct - (questions.length - Object.keys(answers).length),
+      skippedAnswers: questions.length - Object.keys(answers).length,
+      timeSpent: timerEnabled ? (questionCount * 60 - timeRemaining) / 60 : 0,
+      topicPerformance,
+      userAnswers: results,
+      topicIds: topicIds || [],
+      questions: questions, // Guardar preguntas completas para review
+      flaggedQuestions: Array.from(flagged), // Guardar preguntas marcadas
+    }
+
+    console.log("[ExamRunClient] Submitting exam with results:", examResults)
+
+    // Store results in sessionStorage to pass to results page
+    sessionStorage.setItem("examResults", JSON.stringify(examResults))
+
     router.push("/protected/exam/results")
   }
 

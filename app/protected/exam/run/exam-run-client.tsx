@@ -14,10 +14,12 @@ export default function ExamRunClient({
   questions,
   timerEnabled,
   questionCount,
+  topicIds,
 }: {
   questions: Question[]
   timerEnabled: boolean
   questionCount: number
+  topicIds?: string[]
 }) {
   const router = useRouter()
   const [currentQuestion, setCurrentQuestion] = useState(0)
@@ -69,6 +71,7 @@ export default function ExamRunClient({
     const timeSpent = Math.floor((Date.now() - startTime) / 1000 / 60)
     let correct = 0
     const results: { questionId: string; userAnswer: string; correctAnswer: string; isCorrect: boolean }[] = []
+    const topicPerformanceMap = new Map<string, { correct: number; total: number; topicName: string }>()
 
     questions.forEach((q, idx) => {
       const userAnswer = answers[idx] || ""
@@ -80,22 +83,42 @@ export default function ExamRunClient({
         correctAnswer: q.correct_answer,
         isCorrect,
       })
+
+      // Calcular performance por topic
+      const topicId = q.topic_id
+      const topicName = q.topics?.name || "Unknown Topic"
+      if (!topicPerformanceMap.has(topicId)) {
+        topicPerformanceMap.set(topicId, { correct: 0, total: 0, topicName })
+      }
+      const topicStats = topicPerformanceMap.get(topicId)!
+      topicStats.total++
+      if (isCorrect) topicStats.correct++
     })
 
+    // Convertir Map a array para topicPerformance
+    const topicPerformance = Array.from(topicPerformanceMap.entries()).map(([topicId, stats]) => ({
+      topic: stats.topicName,
+      correct: stats.correct,
+      total: stats.total,
+      percentage: Math.round((stats.correct / stats.total) * 100),
+    }))
+
+    const examResults = {
+      score: Math.round((correct / questions.length) * 100),
+      totalQuestions: questions.length,
+      correctAnswers: correct,
+      wrongAnswers: questions.length - correct - (questions.length - Object.keys(answers).length),
+      skippedAnswers: questions.length - Object.keys(answers).length,
+      timeSpent,
+      topicPerformance,
+      userAnswers: results,
+      topicIds: topicIds || [],
+    }
+
+    console.log("[ExamRunClient] Submitting exam with results:", examResults)
+
     // Store results in sessionStorage to pass to results page
-    sessionStorage.setItem(
-      "examResults",
-      JSON.stringify({
-        score: Math.round((correct / questions.length) * 100),
-        totalQuestions: questions.length,
-        correctAnswers: correct,
-        wrongAnswers: questions.length - correct - (questions.length - Object.keys(answers).length),
-        skippedAnswers: questions.length - Object.keys(answers).length,
-        timeSpent,
-        results,
-        questions,
-      }),
-    )
+    sessionStorage.setItem("examResults", JSON.stringify(examResults))
 
     router.push("/protected/exam/results")
   }
@@ -153,7 +176,7 @@ export default function ExamRunClient({
 
         <div className="text-center text-sm text-muted-foreground">
           {answeredCount} of {questions.length} questions answered
-          {flagged.size > 0 && ` • ${flagged.size} flagged`}
+          {flagged.size > 0 && ` ï¿½ ${flagged.size} flagged`}
         </div>
       </div>
 

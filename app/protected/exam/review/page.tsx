@@ -6,10 +6,16 @@ import { AnswerButton } from "@/components/answer-button"
 import { CheckCircle2, XCircle, Flag } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getQuestion } from "@/lib/db-actions"
-import type { QuestionWithDetails } from "@/lib/types"
 
-interface ReviewQuestion extends QuestionWithDetails {
+interface ReviewQuestion {
+  id: string
+  question_text: string
+  option_a: string
+  option_b: string
+  option_c: string
+  option_d: string
+  correct_answer: string
+  explanation?: string | null
   userAnswer?: string | null
   flagged?: boolean
 }
@@ -20,33 +26,48 @@ export default function ReviewAnswersPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadReviewData = async () => {
+    const loadReviewData = () => {
       const stored = sessionStorage.getItem("examReview")
-      const flaggedStored = sessionStorage.getItem("flaggedQuestions")
+      
       if (!stored) {
+        console.log("[ExamReview] No review data found, redirecting")
         router.push("/protected/exam/setup")
         return
       }
 
-      const userAnswers: { questionId: string; userAnswer: string | null }[] = JSON.parse(stored)
-      const flaggedIds: string[] = flaggedStored ? JSON.parse(flaggedStored) : []
+      try {
+        const reviewData = JSON.parse(stored)
+        console.log("[ExamReview] Loaded review data:", reviewData)
 
-      // Fetch all questions
-      const questionsWithAnswers = await Promise.all(
-        userAnswers.map(async (answer) => {
-          const question = await getQuestion(answer.questionId)
-          if (question) {
-            return {
-              ...question,
-              userAnswer: answer.userAnswer,
-              flagged: flaggedIds.includes(answer.questionId),
-            }
+        const { userAnswers, questions: examQuestions, flaggedQuestions } = reviewData
+
+        // Mapear preguntas con respuestas del usuario
+        const questionsWithAnswers = examQuestions.map((q: any, idx: number) => {
+          const userAnswerData = userAnswers.find((ua: any) => ua.questionId === q.id)
+          const isFlagged = flaggedQuestions.includes(idx)
+
+          return {
+            id: q.id,
+            question_text: q.question_text,
+            option_a: q.option_a,
+            option_b: q.option_b,
+            option_c: q.option_c,
+            option_d: q.option_d,
+            correct_answer: q.correct_answer,
+            explanation: q.explanation,
+            userAnswer: userAnswerData?.userAnswer || null,
+            flagged: isFlagged,
           }
-          return null
-        }),
-      )
+        })
 
-      setQuestions(questionsWithAnswers.filter(Boolean) as ReviewQuestion[])
+        console.log("[ExamReview] Processed questions:", questionsWithAnswers)
+        setQuestions(questionsWithAnswers)
+      } catch (error) {
+        console.error("[ExamReview] Error parsing review data:", error)
+        router.push("/protected/exam/setup")
+        return
+      }
+
       setLoading(false)
     }
 

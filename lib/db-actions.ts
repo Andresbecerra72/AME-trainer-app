@@ -513,18 +513,40 @@ export async function saveExamHistory(data: {
 
 export async function getExamHistory(userId: string, limit = 10) {
   const supabase = await createSupabaseServerClient()
-  const { data, error } = await supabase
+  
+  // Obtener exam history
+  const { data: examHistory, error } = await supabase
     .from("exam_history")
     .select("*")
     .eq("user_id", userId)
     .order("completed_at", { ascending: false })
     .limit(limit)
 
-  if (error) {
+  if (error || !examHistory) {
     console.error("[v0] Error fetching exam history:", error)
     return []
   }
-  return data || []
+
+  // Para cada exam, obtener los topics relacionados
+  const examsWithTopics = await Promise.all(
+    examHistory.map(async (exam) => {
+      if (!exam.topic_ids || exam.topic_ids.length === 0) {
+        return { ...exam, topics: [] }
+      }
+
+      const { data: topics } = await supabase
+        .from("topics")
+        .select("id, name, code")
+        .in("id", exam.topic_ids)
+
+      return {
+        ...exam,
+        topics: topics || [],
+      }
+    })
+  )
+
+  return examsWithTopics
 }
 
 export async function getUserStats(userId: string) {

@@ -38,12 +38,17 @@ export default function ExamResultsPage() {
     // Get results from URL params or sessionStorage
     const resultsParam = searchParams.get("results")
     if (resultsParam) {
+      console.log("[ExamResults] Loading from URL params")
       setResults(JSON.parse(decodeURIComponent(resultsParam)))
     } else {
       const stored = sessionStorage.getItem("examResults")
+      console.log("[ExamResults] Stored results:", stored)
       if (stored) {
-        setResults(JSON.parse(stored))
+        const parsedResults = JSON.parse(stored)
+        console.log("[ExamResults] Parsed results:", parsedResults)
+        setResults(parsedResults)
       } else {
+        console.log("[ExamResults] No results found, redirecting")
         router.push("/protected/exam/setup")
       }
     }
@@ -51,7 +56,17 @@ export default function ExamResultsPage() {
 
   useEffect(() => {
     if (results && !saved) {
-      const topicIds = searchParams.get("topicIds")?.split(",") || []
+      // Obtener topicIds desde results (ya incluidos desde ExamRunClient)
+      const topicIds = (results as any).topicIds || []
+
+      console.log("[ExamResults] Saving exam history:", {
+        topic_ids: topicIds,
+        question_count: results.totalQuestions,
+        correct_answers: results.correctAnswers,
+        incorrect_answers: results.wrongAnswers,
+        score_percentage: results.score,
+        time_taken: Math.round(results.timeSpent * 60),
+      })
 
       saveExamHistory({
         topic_ids: topicIds,
@@ -62,18 +77,19 @@ export default function ExamResultsPage() {
         time_taken: Math.round(results.timeSpent * 60), // Convert minutes to seconds
       })
         .then(() => {
+          console.log("[ExamResults] Exam history saved successfully")
           setSaved(true)
         })
         .catch((error) => {
-          console.error("[v0] Error saving exam history:", error)
+          console.error("[ExamResults] Error saving exam history:", error)
           toast({
             title: "Warning",
-            description: "Could not save exam history",
+            description: "Could not save exam history: " + error.message,
             variant: "destructive",
           })
         })
     }
-  }, [results, saved, searchParams, toast])
+  }, [results, saved, toast])
 
   if (!results) {
     return (
@@ -86,7 +102,17 @@ export default function ExamResultsPage() {
   }
 
   const handleReviewAnswers = () => {
-    sessionStorage.setItem("examReview", JSON.stringify(results.userAnswers))
+    if (!results) return
+
+    // Guardar toda la data necesaria para review
+    const reviewData = {
+      userAnswers: results.userAnswers,
+      questions: (results as any).questions || [],
+      flaggedQuestions: (results as any).flaggedQuestions || [],
+    }
+
+    console.log("[ExamResults] Saving review data:", reviewData)
+    sessionStorage.setItem("examReview", JSON.stringify(reviewData))
     router.push("/protected/exam/review")
   }
 
