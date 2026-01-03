@@ -5,6 +5,7 @@ import type { QuestionImportJob } from "../types"
 import { getImportJob, uploadTextExtract } from "../server/questionImport.actions"
 import { getSession } from "@/features/auth/services/getSession"
 import { extractTextFromFile, validateExtractedText } from "../utils/textExtraction"
+import { deleteImportJob } from "../server/deleteImportJob.actions"
 
 export function useQuestionImportJob() {
   const [job, setJob] = useState<QuestionImportJob | null>(null)
@@ -15,6 +16,11 @@ export function useQuestionImportJob() {
 
   const pollRef = useRef<number | null>(null)
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => stopPolling()
+  }, [])
+
   function stopPolling() {
     if (pollRef.current) window.clearInterval(pollRef.current)
     pollRef.current = null
@@ -22,27 +28,25 @@ export function useQuestionImportJob() {
 
   function beginPolling(jobId: string) {
     stopPolling()
-    // Clear uploading state and start polling
     setIsUploading(false)
     setExtractionProgress("")
     
     pollRef.current = window.setInterval(async () => {
       try {
         const latest = await getImportJob(jobId)
-        console.log("Polling import job", latest)
         setJob(latest)
 
         if (latest.status === "ready" || latest.status === "failed") {
           stopPolling()
         }
       } catch {
-        // ignore transient errors
+        // Ignore transient errors during polling
       }
     }, 1500)
   }
 
   async function startUpload(file: File) {
-    setError(null)
+    resetState()
     setIsExtracting(true)
     setExtractionProgress("Preparing file...")
 
@@ -50,30 +54,22 @@ export function useQuestionImportJob() {
       const { user } = await getSession()
       if (!user?.id) throw new Error("Missing session user")
 
-      // Step 1: Extract text from file on client side
+      // Extract text from file
       setExtractionProgress("Extracting text from file...")
-      console.log("Starting client-side text extraction for:", file.name)
-      
       const extractionResult = await extractTextFromFile(file)
-      
-      console.log(`Text extracted via ${extractionResult.method}:`, {
-        length: extractionResult.text.length,
-        preview: extractionResult.text.substring(0, 200)
-      })
 
-      // Step 2: Validate extracted text
+      // Validate extracted text
       setExtractionProgress("Validating extracted text...")
       const validation = validateExtractedText(extractionResult.text)
       
       if (!validation.isValid) {
         const errorMsg = `Text validation failed:\n${validation.issues.join('\n')}\n\nSuggestions:\n${validation.suggestions.join('\n')}`
-        console.warn("Text validation issues:", validation)
         setError(errorMsg)
         setIsExtracting(false)
         return
       }
 
-      // Step 3: Upload extracted text and metadata to server
+      // Upload to server
       setIsExtracting(false)
       setIsUploading(true)
       setExtractionProgress("Uploading to server...")
@@ -82,113 +78,92 @@ export function useQuestionImportJob() {
         file,
         userId: user.id,
         rawText: extractionResult.text,
-        rawPages: extractionResult.pages, // Include pages array for page-by-page processing
+        rawPages: extractionResult.pages,
         extractionMethod: extractionResult.method,
       })
       
       setJob(result)
       setExtractionProgress("Processing questions...")
-
-      // Poll for final results
       beginPolling(result.id)
     } catch (e: any) {
-      console.error("Upload error:", e)
-      setError(e?.message ?? "Upload failed")
-      setIsExtracting(false)
-      setIsUploading(false)
-    } finally {
-      if (!error) {
-        setExtractionProgress("")
-      }
+      handleError(e)
     }
   }
 
-  /**
-   * Resume monitoring an existing job without re-uploading
-   * Useful for jobs that are still processing when user navigates away
-   * OR for jobs that are ready for review
-   */
   async function resumeJob(existingJob: QuestionImportJob) {
     setError(null)
     setJob(existingJob)
     
-    // If job is ready, just set it as current (FileImportReviewCard will show)
+    // If job is ready, just set it as current
     if (existingJob.status === "ready") {
       return
     }
     
-    // Only start polling/processing if job is still in progress
+    // Start polling/processing if job is still in progress
     if (existingJob.status === "pending" || existingJob.status === "processing") {
       setExtractionProgress("Processing questions...")
       
       // Check if we need to trigger Edge Function processing
-      // This includes: pending jobs OR processing jobs that have raw_text/raw_pages 
-      // (meaning extraction completed but parsing may have failed)
       const needsProcessing = 
         existingJob.status === "pending" || 
         (existingJob.status === "processing" && (existingJob.raw_text || existingJob.raw_pages))
       
       if (needsProcessing) {
-        console.log(`Triggering processing for job ${existingJob.id} (status: ${existingJob.status})`)
         try {
           const { processImportJob } = await import("../server/questionImport.actions")
           
           // Fire and forget - let it process in background
-          processImportJob(existingJob.id).catch(err => {
-            console.error(`Failed to trigger processing for job ${existingJob.id}:`, err)
+          processImportJob(existingJob.id).catch(() => {
             // Timeout errors are expected, job will update via polling
           })
           
-          // Mark as processing in local state
           setJob({ ...existingJob, status: "processing" })
-        } catch (err: any) {
-          console.error("Failed to import processImportJob:", err)
+        } catch {
           setError("Failed to resume processing")
           return
         }
       }
       
-      // Start polling to monitor progress
       beginPolling(existingJob.id)
     }
   }
 
-  useEffect(() => () => stopPolling(), [])
-
-  /**
-   * Delete an import job
-   * Can be used for any job status (pending, processing, failed)
-   */
-  async function deleteJob(jobId: string) {
+  async function deleteJob(jobId: string): Promise<boolean> {
     try {
-      const { deleteImportJob } = await import("../server/deleteImportJob.actions")
-      const result = await deleteImportJob(jobId)
+      stopPolling()
+      await deleteImportJob(jobId)
       
-      if (!result.success) {
-        setError(result.error || "Failed to delete job")
-        return false
-      }
-      
-      // Clear local state if this was the current job
       if (job?.id === jobId) {
         setJob(null)
-        stopPolling()
       }
       
       return true
-    } catch (err: any) {
-      console.error("Failed to delete job:", err)
-      setError("Failed to delete job")
+    } catch (e: any) {
+      console.error("Failed to delete job:", e)
       return false
     }
   }
 
-  return { 
-    job, 
-    isUploading, 
+  function resetState() {
+    setError(null)
+    setIsExtracting(false)
+    setIsUploading(false)
+    setExtractionProgress("")
+  }
+
+  function handleError(e: any) {
+    console.error("Upload error:", e)
+    setError(e?.message ?? "Upload failed")
+    setIsExtracting(false)
+    setIsUploading(false)
+  }
+
+  return {
+    job,
+    isUploading,
     isExtracting,
     extractionProgress,
-    error, 
+    error,
     startUpload,
     resumeJob,
     deleteJob,
