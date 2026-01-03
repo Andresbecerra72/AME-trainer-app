@@ -1,9 +1,9 @@
 "use client"
 
 import { DraftQuestionCard } from "./DraftQuestionCard"
-import type { DraftQuestion } from "../parsers/pasteText.parser"
 import { EmptyState } from "@/components/empty-state"
 import { FileQuestion } from "lucide-react"
+import { DraftQuestion } from "../types"
 
 type Props = {
   questions: DraftQuestion[]

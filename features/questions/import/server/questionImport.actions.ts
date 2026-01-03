@@ -67,6 +67,10 @@ export async function createQuestionsBatch(input: {
     difficulty: input.difficulty,
     status: "pending", // ensure moderation flow
     author_id: user?.id,
+    option_a: q.option_a || "---",
+    option_b: q.option_b || "---",
+    option_c: q.option_c || "---",
+    option_d: q.option_d || "---",
   }))
 
   

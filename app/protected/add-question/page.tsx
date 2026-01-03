@@ -21,9 +21,10 @@ import { BottomNav } from "@/components/bottom-nav"
 import { getSession } from "@/features/auth/services/getSession"
 import { User, UserRole } from "@/lib/types"
 import { useQuestionImport } from "@/features/questions/import/hooks/useQuestionImport"
-import { DraftQuestionsList, FormatExampleCard, FileUploadStatusCard, FileImportReviewCard } from "@/features/questions/import/components"
+import { DraftQuestionsList, FormatExampleCard, FileUploadStatusCard, FileImportReviewCard, PendingJobsCard } from "@/features/questions/import/components"
 import { DraftQuestion } from "@/features/questions/import/types"
 import { useQuestionImportJob } from "@/features/questions/import/hooks/useQuestionImportJob"
+import { usePendingJobs } from "@/features/questions/import/hooks/usePendingJobs"
 import { useUser } from "@/features/auth/components/UserProvider"
 import { createQuestionsBatch } from "@/features/questions/import/server/questionImport.actions"
 
@@ -53,7 +54,8 @@ export default function AddQuestionPage() {
   const [batchTopic, setBatchTopic] = useState("")
   const [batchDifficulty, setBatchDifficulty] = useState<"easy" | "medium" | "hard">("medium")
 
-  const { job, isUploading, isExtracting, extractionProgress, error, startUpload } = useQuestionImportJob()
+  const { job, isUploading, isExtracting, extractionProgress, error, startUpload, resumeJob, deleteJob } = useQuestionImportJob()
+  const { pendingJobs, isLoading: isPendingJobsLoading, refresh: refreshPendingJobs } = usePendingJobs()
 
   useEffect(() => {
     loadTopics()
@@ -117,10 +119,47 @@ export default function AddQuestionPage() {
 
     try {
       await startUpload(file)
+      // Refresh pending jobs after upload to update the list
+      refreshPendingJobs()
     } catch (error: any) {
       toast({
         title: "Upload Failed",
         description: error?.message || "Failed to upload file. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleResumeJob = async (resumeJobData: any) => {
+    // Resume monitoring this job by setting it as the current job
+    await resumeJob(resumeJobData)
+    
+    const message = resumeJobData.status === "ready" 
+      ? "Review the parsed questions and save them."
+      : `Now monitoring "${resumeJobData.file_name || 'Untitled'}"`
+    
+    toast({
+      title: resumeJobData.status === "ready" ? "Ready for Review" : "Monitoring Resumed",
+      description: message,
+    })
+  }
+
+  const handleDeleteJob = async (jobToDelete: any) => {
+    const fileName = jobToDelete.file_name || "Untitled"
+    
+    const success = await deleteJob(jobToDelete.id)
+    
+    if (success) {
+      toast({
+        title: "Job Deleted",
+        description: `"${fileName}" has been removed.`,
+      })
+      // Refresh the pending jobs list
+      refreshPendingJobs()
+    } else {
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete the job. Please try again.",
         variant: "destructive",
       })
     }
@@ -188,6 +227,15 @@ export default function AddQuestionPage() {
         description: `${result.inserted} question${result.inserted === 1 ? '' : 's'} from file submitted for review.`,
       })
 
+      // Mark job as completed since questions were successfully saved
+      if (job?.id) {
+        const { updateJobStatus } = await import("@/features/questions/import/server/updateJobStatus.actions")
+        await updateJobStatus(job.id, "completed")
+      }
+
+      // Refresh pending jobs list
+      refreshPendingJobs()
+      
       router.push("/protected/dashboard")
     } catch (error) {
       toast({
@@ -368,6 +416,16 @@ export default function AddQuestionPage() {
         {/* Upload File Mode */}
         {mode === "Upload File" && (
           <div className="space-y-6">
+            {/* Pending Jobs Card - Show if there are pending/processing jobs */}
+            {!isPendingJobsLoading && pendingJobs.length > 0 && !job && (
+              <PendingJobsCard 
+                jobs={pendingJobs}
+                onResumeJob={handleResumeJob}
+                onDeleteJob={handleDeleteJob}
+                isLoading={isPendingJobsLoading}
+              />
+            )}
+
             {/* Upload Area - Only show if no job or job failed */}
             {(!job || job.status === "failed") && (
               <>

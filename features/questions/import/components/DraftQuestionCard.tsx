@@ -65,7 +65,7 @@ export function DraftQuestionCard({ question, index, onUpdate, onDelete }: Props
                   {letter}
                 </div>
                 <Input
-                  value={draft[`option_${letter.toLowerCase()}` as keyof DraftQuestion] as string}
+                  value={draft[`option_${letter.toLowerCase()}` as keyof DraftQuestion] as string || "---"}
                   onChange={(e) =>
                     setDraft({
                       ...draft,
@@ -168,7 +168,7 @@ export function DraftQuestionCard({ question, index, onUpdate, onDelete }: Props
               >
                 <span className="font-semibold text-primary flex-shrink-0">{letter})</span>
                 <span className={question.correct_answer === letter ? "font-medium" : ""}>
-                  {question[`option_${letter.toLowerCase()}` as keyof DraftQuestion] as string}
+                  {question[`option_${letter.toLowerCase()}` as keyof DraftQuestion] as string || "---"}
                 </span>
               </div>
             ))}

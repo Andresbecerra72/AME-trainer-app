@@ -1,4 +1,4 @@
-export type ImportJobStatus = "pending" | "processing" | "ready" | "failed"
+export type ImportJobStatus = "pending" | "processing" | "ready" | "failed" | "completed"
 
 export type DraftQuestion = {
   question_text: string
@@ -19,6 +19,7 @@ export type QuestionImportJob = {
   file_mime: string | null
   status: ImportJobStatus
   raw_text: string | null
+  raw_pages: any[] | null
   result: DraftQuestion[] | null
   stats: Record<string, any> | null
   error: string | null

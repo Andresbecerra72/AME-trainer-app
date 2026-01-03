@@ -103,7 +103,85 @@ export function useQuestionImportJob() {
     }
   }
 
+  /**
+   * Resume monitoring an existing job without re-uploading
+   * Useful for jobs that are still processing when user navigates away
+   * OR for jobs that are ready for review
+   */
+  async function resumeJob(existingJob: QuestionImportJob) {
+    setError(null)
+    setJob(existingJob)
+    
+    // If job is ready, just set it as current (FileImportReviewCard will show)
+    if (existingJob.status === "ready") {
+      return
+    }
+    
+    // Only start polling/processing if job is still in progress
+    if (existingJob.status === "pending" || existingJob.status === "processing") {
+      setExtractionProgress("Processing questions...")
+      
+      // Check if we need to trigger Edge Function processing
+      // This includes: pending jobs OR processing jobs that have raw_text/raw_pages 
+      // (meaning extraction completed but parsing may have failed)
+      const needsProcessing = 
+        existingJob.status === "pending" || 
+        (existingJob.status === "processing" && (existingJob.raw_text || existingJob.raw_pages))
+      
+      if (needsProcessing) {
+        console.log(`Triggering processing for job ${existingJob.id} (status: ${existingJob.status})`)
+        try {
+          const { processImportJob } = await import("../server/questionImport.actions")
+          
+          // Fire and forget - let it process in background
+          processImportJob(existingJob.id).catch(err => {
+            console.error(`Failed to trigger processing for job ${existingJob.id}:`, err)
+            // Timeout errors are expected, job will update via polling
+          })
+          
+          // Mark as processing in local state
+          setJob({ ...existingJob, status: "processing" })
+        } catch (err: any) {
+          console.error("Failed to import processImportJob:", err)
+          setError("Failed to resume processing")
+          return
+        }
+      }
+      
+      // Start polling to monitor progress
+      beginPolling(existingJob.id)
+    }
+  }
+
   useEffect(() => () => stopPolling(), [])
+
+  /**
+   * Delete an import job
+   * Can be used for any job status (pending, processing, failed)
+   */
+  async function deleteJob(jobId: string) {
+    try {
+      const { deleteImportJob } = await import("../server/deleteImportJob.actions")
+      const result = await deleteImportJob(jobId)
+      
+      if (!result.success) {
+        setError(result.error || "Failed to delete job")
+        return false
+      }
+      
+      // Clear local state if this was the current job
+      if (job?.id === jobId) {
+        setJob(null)
+        stopPolling()
+      }
+      
+      return true
+    } catch (err: any) {
+      console.error("Failed to delete job:", err)
+      setError("Failed to delete job")
+      return false
+    }
+  }
 
   return { 
     job, 
@@ -111,6 +189,8 @@ export function useQuestionImportJob() {
     isExtracting,
     extractionProgress,
     error, 
-    startUpload 
+    startUpload,
+    resumeJob,
+    deleteJob,
   }
 }
