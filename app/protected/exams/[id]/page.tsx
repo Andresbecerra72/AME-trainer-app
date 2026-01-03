@@ -11,26 +11,50 @@ import { RateExamForm } from "./rate-exam-form"
 import { saveExam, unsaveExam } from "@/lib/db-actions"
 import { ShareButton } from "@/components/share-button"
 
-export default async function ExamDetailPage({ params }: { params: { id: string } }) {
+export default async function ExamDetailPage({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  const { id } = await params
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Fetch exam details with creator info
-  const { data: exam } = await supabase
+  // Fetch exam details
+  const { data: examData, error: examError } = await supabase
     .from("community_exams")
-    .select(`
-      *,
-      creator:users!created_by(id, full_name, email, avatar_url),
-      topics:community_exam_topics(topic:topics(*))
-    `)
-    .eq("id", params.id)
+    .select("*")
+    .eq("id", id)
     .single()
 
-  if (!exam) {
+  if (!examData || examError) {
     notFound()
   }
+
+  // Fetch creator profile
+  let creator = null
+  if (examData.created_by) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, display_name, email, avatar_url")
+      .eq("id", examData.created_by)
+      .single()
+    creator = profile
+  }
+
+  // Fetch topics
+  let topics: Array<{ id: string; name: string; code: string }> = []
+  if (examData.topic_ids && examData.topic_ids.length > 0) {
+    const { data: topicsData } = await supabase
+      .from("topics")
+      .select("id, name, code")
+      .in("id", examData.topic_ids)
+    topics = topicsData || []
+  }
+
+  const exam = { ...examData, creator, topics }
 
   // Check if user has saved this exam
   let isSaved = false
@@ -58,12 +82,27 @@ export default async function ExamDetailPage({ params }: { params: { id: string 
     : { data: null }
 
   // Fetch ratings
-  const { data: ratings } = await supabase
+  const { data: ratingsData } = await supabase
     .from("exam_ratings")
-    .select("*, user:profiles(full_name, email)")
+    .select("*")
     .eq("exam_id", exam.id)
     .order("created_at", { ascending: false })
     .limit(5)
+
+  // Fetch user profiles for ratings
+  const ratings = await Promise.all(
+    (ratingsData || []).map(async (rating) => {
+      if (!rating.user_id) return { ...rating, user: null }
+      
+      const { data: userProfile } = await supabase
+        .from("profiles")
+        .select("display_name, email")
+        .eq("id", rating.user_id)
+        .single()
+      
+      return { ...rating, user: userProfile }
+    })
+  )
 
   const difficultyColors = {
     easy: "bg-green-100 text-green-800",
@@ -85,13 +124,13 @@ export default async function ExamDetailPage({ params }: { params: { id: string 
       .from("saved_exams")
       .select("id")
       .eq("user_id", user.id)
-      .eq("exam_id", params.id)
+      .eq("exam_id", id)
       .single()
 
     if (existing) {
-      await unsaveExam(user.id, params.id)
+      await unsaveExam(user.id, id)
     } else {
-      await saveExam(user.id, params.id)
+      await saveExam(user.id, id)
     }
   }
 
@@ -139,7 +178,7 @@ export default async function ExamDetailPage({ params }: { params: { id: string 
 
           {exam.creator && (
             <div className="text-sm text-muted-foreground pt-2 border-t">
-              Created by {exam.creator.full_name || exam.creator.email}
+              Created by {exam.creator.display_name || exam.creator.email}
             </div>
           )}
 
@@ -172,8 +211,8 @@ export default async function ExamDetailPage({ params }: { params: { id: string 
             </div>
             <div className="flex flex-wrap gap-2">
               {exam.topics.map((t: any) => (
-                <Badge key={t.topic.id} variant="outline">
-                  {t.topic.code} - {t.topic.name}
+                <Badge key={t.id} variant="outline">
+                  {t.code} - {t.name}
                 </Badge>
               ))}
             </div>
@@ -226,7 +265,7 @@ export default async function ExamDetailPage({ params }: { params: { id: string 
               {ratings.map((rating: any) => (
                 <div key={rating.id} className="space-y-2 pb-4 border-b last:border-0 last:pb-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{rating.user?.full_name || rating.user?.email}</span>
+                    <span className="text-sm font-medium">{rating.user?.display_name || rating.user?.email}</span>
                     <div className="flex items-center gap-1">
                       <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                       <span className="text-sm font-semibold">{rating.rating}</span>

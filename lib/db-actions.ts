@@ -717,10 +717,8 @@ export async function getCommunityExams(filters?: {
   offset?: number
 }) {
   const supabase = await createSupabaseServerClient()
-  let query = supabase.from("community_exams").select(`
-      *,
-      creator:profiles!created_by(*)
-    `)
+  
+  let query = supabase.from("community_exams").select("*")
 
   if (filters?.createdBy) query = query.eq("created_by", filters.createdBy)
   if (filters?.isFeatured !== undefined) query = query.eq("is_featured", filters.isFeatured)
@@ -730,12 +728,46 @@ export async function getCommunityExams(filters?: {
     .order("created_at", { ascending: false })
     .range(filters?.offset || 0, (filters?.offset || 0) + (filters?.limit || 19))
 
-  const { data, error } = await query
+  const { data: exams, error } = await query
+  
   if (error) {
     console.error("[v0] Error fetching community exams:", error)
     return []
   }
-  return data || []
+  
+  if (!exams || exams.length === 0) {
+    return []
+  }
+  
+  // Fetch creator profiles and topics for each exam
+  const examsWithDetails = await Promise.all(
+    exams.map(async (exam) => {
+      // Fetch creator profile
+      let creator = null
+      if (exam.created_by) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name, email")
+          .eq("id", exam.created_by)
+          .single()
+        creator = profile
+      }
+      
+      // Fetch topics
+      let topics: Array<{ id: string; name: string; code: string }> = []
+      if (exam.topic_ids && exam.topic_ids.length > 0) {
+        const { data: topicsData } = await supabase
+          .from("topics")
+          .select("id, name, code")
+          .in("id", exam.topic_ids)
+        topics = topicsData || []
+      }
+      
+      return { ...exam, creator, topics }
+    })
+  )
+  
+  return examsWithDetails
 }
 
 export async function getCommunityExam(examId: string) {
