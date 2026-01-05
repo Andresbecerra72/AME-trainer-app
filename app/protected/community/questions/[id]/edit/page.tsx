@@ -1,53 +1,74 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { MobileHeader } from "@/components/mobile-header"
-import { MobileCard } from "@/components/mobile-card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { notFound, redirect } from "next/navigation"
-import { createEditSuggestion, getTopics } from "@/lib/db-actions"
-import { getSession } from "@/features/auth/services/getSession"
+import { BottomNav } from "@/components/bottom-nav"
+import { redirect, notFound } from "next/navigation"
+import { getTopics } from "@/lib/db-actions"
+import { QuestionForm } from "@/features/community/components/QuestionForm"
+import { getCommunityQuestion } from "@/features/community/community.api"
 
-export default async function SuggestEditPage({ params }: { params: { id: string } }) {
+interface EditQuestionPageProps {
+  params: Promise<{ id: string }>
+}
+
+export default async function EditQuestionPage({ params }: EditQuestionPageProps) {
   const { id } = await params
-
   const supabase = await createSupabaseServerClient()
-  const { user, role } = await getSession()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (!user) {
     redirect("/public/auth/login")
   }
 
-  const { data: question } = await supabase.from("questions").select("*").eq("id", id).single()
-
+  // Fetch question
+  const question = await getCommunityQuestion(id)
+  
   if (!question) {
     notFound()
   }
 
+  // Check permissions
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  const isAuthor = question.author_id === user.id
+  const isAdmin = profile?.role === "admin" || profile?.role === "super_admin"
+
+  if (!isAuthor && !isAdmin) {
+    redirect("/protected/community")
+  }
+
   const topics = await getTopics()
 
-  async function submitEditSuggestion(formData: FormData) {
-    "use server"
-    const proposed_question_text = formData.get("question_text") as string
-    const proposed_answers = {
-      option_a: formData.get("option_a") as string,
-      option_b: formData.get("option_b") as string,
-      option_c: formData.get("option_c") as string,
-      option_d: formData.get("option_d") as string,
-    }
-    const proposed_correct_index = formData.get("correct_answer") as string
+  const initialData = {
+    id: question.id,
+    question_text: question.question_text,
+    option_a: question.option_a,
+    option_b: question.option_b,
+    option_c: question.option_c,
+    option_d: question.option_d,
+    correct_answer: question.correct_answer as "A" | "B" | "C" | "D",
+    explanation: question.explanation || "",
+    topic_id: question.topic_id,
+    difficulty: question.difficulty as "easy" | "medium" | "hard",
+  }
 
-    // const suggestedData = {
-    //   question_text: formData.get("question_text") as string,
-    //   option_a: formData.get("option_a") as string,
-    //   option_b: formData.get("option_b") as string,
-    //   option_c: formData.get("option_c") as string,
-    //   option_d: formData.get("option_d") as string,
-    //   correct_answer: formData.get("correct_answer") as string,
-    //   explanation: formData.get("explanation") as string,
-    //   topic_id: formData.get("topic_id") as string,
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      <MobileHeader title="Edit Question" showBack />
+
+      <main className="container max-w-2xl mx-auto px-4 py-4 sm:py-6">
+        <QuestionForm topics={topics} initialData={initialData} mode="edit" />
+      </main>
+
+      <BottomNav />
+    </div>
+  )
+}
     //   difficulty: formData.get("difficulty") as string,
     // }
 
