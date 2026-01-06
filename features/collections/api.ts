@@ -6,7 +6,7 @@ import { z } from "zod"
 
 const createCollectionSchema = z.object({
   name: z.string().min(1, "Collection name is required").max(100),
-  description: z.string().max(500).optional(),
+  description: z.string().max(500).nullable().optional(),
 })
 
 export async function createCollection(formData: FormData) {
@@ -26,7 +26,7 @@ export async function createCollection(formData: FormData) {
 
   const validatedData = createCollectionSchema.parse(rawData)
 
-  const { error } = await supabase.from("collections").insert({
+  const { error } = await supabase.from("question_collections").insert({
     name: validatedData.name,
     description: validatedData.description,
     user_id: user.id,
@@ -43,7 +43,7 @@ export async function getCollections(userId: string) {
   const supabase = await createSupabaseServerClient()
 
   const { data, error } = await supabase
-    .from("collections")
+    .from("question_collections")
     .select("*, question_count:collection_questions(count)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })

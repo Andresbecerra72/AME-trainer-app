@@ -1551,10 +1551,12 @@ export async function getCollection(collectionId: string) {
     .select(`
       *,
       questions:collection_questions(
+        id,
+        added_at,
         question:questions(
           *,
           topic:topics(*),
-          author:profiles(*)
+          author:profiles!questions_author_id_fkey(*)
         )
       )
     `)
