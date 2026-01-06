@@ -1,5 +1,6 @@
 "use server"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { getCurrentUser } from "@/lib/db-actions"
 import { badgeSchema, BadgeInput } from "../utils/badges.validation"
 import { revalidatePath } from "next/cache"
@@ -45,19 +46,20 @@ export async function createBadge(formData: FormData) {
 }
 
 export async function assignBadge(formData: FormData) {
-  const supabase = await createSupabaseServerClient()
-
   const userId = String(formData.get("userId") ?? "").trim()
   const badgeId = String(formData.get("badgeId") ?? "").trim()
 
   if (!userId || !badgeId) throw new Error("userId and badgeId are required")
 
+  // MUST verify admin role before using admin client
   const currentUser = await getCurrentUser()
   if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "super_admin")) {
     throw new Error("Unauthorized: only admins can assign badges")
   }
 
-  const { error } = await supabase.from("user_badges").insert({
+  // Use admin client to bypass RLS for cross-user badge assignment
+  const supabaseAdmin = await createSupabaseAdminClient()
+  const { error } = await supabaseAdmin.from("user_badges").insert({
     user_id: userId,
     badge_id: badgeId,
   })
@@ -65,6 +67,7 @@ export async function assignBadge(formData: FormData) {
   if (error) throw new Error(String(error.message ?? error))
 
   revalidatePath("/admin/badges")
+  revalidatePath("/protected/profile")
 }
 
 export async function getBadges() {

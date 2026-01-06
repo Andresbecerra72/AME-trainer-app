@@ -38,8 +38,16 @@ export async function markQuestionAsDoubtful(questionId: string) {
 
 export async function getUserQuestions(user_id: string) {
   return await supabaseBrowserClient
-     .from("questions")
-    .select("id", { count: "exact" })
+    .from("questions")
+    .select(`
+      id,
+      question_text,
+      upvotes,
+      comment_count,
+      status,
+      created_at,
+      topic_id
+    `)
     .eq("author_id", user_id)
-    .eq("status", "approved")
+    .order("created_at", { ascending: false })
 }

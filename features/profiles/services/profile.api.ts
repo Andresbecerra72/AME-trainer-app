@@ -1,6 +1,7 @@
 "use server"
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { getBadgeLevel, type BadgeLevel } from "../utils/profile.utils"
 
 // GET PROFILE
 export async function getProfile() {
@@ -87,3 +88,90 @@ export async function deleteUser(formData: FormData) {
   // Remove the profile row. If you need to also remove auth user, use a server-side admin API.
   await supabase.from("profiles").delete().eq("id", userId)
 }
+
+// GET USER PROFILE DATA WITH STATS
+import { getUserQuestions } from "@/features/questions/services/question.api"
+import { getUserBadges } from "@/lib/db-actions"
+
+export interface ProfileStats {
+  reputation: number
+  totalQuestions: number
+  totalUpvotes: number
+  totalDiscussions: number
+}
+
+export interface ProfileData {
+  profile: {
+    id: string
+    display_name: string | null
+    email: string | null
+    avatar_url: string | null
+    reputation: number
+    role: string
+  }
+  stats: ProfileStats
+  badgeLevel: BadgeLevel
+  questions: any[]
+  badges: any[]
+}
+
+export async function getProfileData(userId: string): Promise<ProfileData | null> {
+  const supabase = await createSupabaseServerClient()
+  
+  // Validate userId
+  if (!userId || userId.trim() === "") {
+    console.error("Invalid userId provided to getProfileData")
+    return null
+  }
+  
+  // Get profile
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, display_name, email, avatar_url, reputation, role")
+    .eq("id", userId)
+    .single()
+
+  if (profileError) {
+    console.error("Error fetching profile:", {
+      error: profileError,
+      userId,
+      message: profileError.message,
+      details: profileError.details,
+      hint: profileError.hint,
+      code: profileError.code,
+    })
+    return null
+  }
+
+  if (!profile) {
+    console.error("No profile found for userId:", userId)
+    return null
+  }
+
+  // Get user questions
+  const { data: userQuestions } = await getUserQuestions(userId)
+  const questions = userQuestions || []
+
+  // Get user badges
+  const badges = await getUserBadges(userId)
+
+  // Calculate stats
+  const stats: ProfileStats = {
+    reputation: profile.reputation || 0,
+    totalQuestions: questions.length,
+    totalUpvotes: questions.reduce((sum: number, q: any) => sum + (q.upvotes || 0), 0),
+    totalDiscussions: questions.reduce((sum: number, q: any) => sum + (q.comment_count || 0), 0),
+  }
+
+  // Calculate badge level
+  const badgeLevel = getBadgeLevel(profile.reputation)
+
+  return {
+    profile,
+    stats,
+    badgeLevel,
+    questions,
+    badges,
+  }
+}
+ 

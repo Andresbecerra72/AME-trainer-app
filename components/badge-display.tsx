@@ -1,17 +1,22 @@
 import { Award, Shield, Star, Trophy, Zap } from "lucide-react"
 
+interface Badge {
+  id: string
+  name: string
+  description: string
+  icon: string
+  color: string
+}
+
 interface BadgeDisplayProps {
-  badges: Array<{
-    id: string
-    name: string
-    description: string
-    icon: string
-    color: string
-  }>
+  badges: Badge | Badge[]
 }
 
 export function BadgeDisplay({ badges }: BadgeDisplayProps) {
-  if (!badges || badges.length === 0) {
+  // Convert to array if single badge
+  const badgeArray = Array.isArray(badges) ? badges : [badges]
+
+  if (!badgeArray || badgeArray.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         <Award className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -28,29 +33,32 @@ export function BadgeDisplay({ badges }: BadgeDisplayProps) {
       trophy: Trophy,
       zap: Zap,
     }
-    return icons[iconName] || Award
+    return icons[iconName.toLowerCase()] || Award
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      {badges.map((badge) => {
+    <>
+      {badgeArray.map((badge) => {
         const Icon = getIcon(badge.icon)
         return (
           <div
             key={badge.id}
-            className="flex flex-col items-center p-4 rounded-lg border bg-card hover:shadow-md transition-shadow"
+            className="group relative inline-flex flex-col items-center p-3 sm:p-4 rounded-lg border bg-card hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
+            title={badge.description}
           >
             <div
-              className={`w-16 h-16 rounded-full flex items-center justify-center mb-3`}
+              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}
               style={{ backgroundColor: badge.color + "20" }}
             >
-              <Icon className="h-8 w-8" style={{ color: badge.color }} />
+              <Icon className="h-6 w-6 sm:h-7 sm:w-7" style={{ color: badge.color }} />
             </div>
-            <h3 className="font-semibold text-sm text-center mb-1">{badge.name}</h3>
-            <p className="text-xs text-muted-foreground text-center">{badge.description}</p>
+            <h3 className="font-semibold text-xs sm:text-sm text-center line-clamp-1">{badge.name}</h3>
+            <p className="text-xs text-muted-foreground text-center line-clamp-2 hidden sm:block mt-1">
+              {badge.description}
+            </p>
           </div>
         )
       })}
-    </div>
+    </>
   )
 }
