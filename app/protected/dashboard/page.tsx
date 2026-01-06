@@ -45,7 +45,7 @@ export default async function DashboardPage() {
  const stats = [
     { label: "Reputation", value: profile?.reputation || 0, icon: Award },
     { label: "Questions", value: userQuestions?.length || 0, icon: MessageSquare },
-    { label: "Bookmarks", value: bookmarks || 0, icon: Bookmark },
+    { label: "Bookmarks", value: bookmarks || 0, icon: Bookmark, href: "/protected/bookmarks" },
   ]
 
   return (
@@ -75,7 +75,7 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-3 gap-4">
             {stats.map((stat) => {
               const Icon = stat.icon
-              return (
+              const content = (
                 <div key={stat.label} className="text-center">
                   <div className="flex justify-center mb-2">
                     <Icon className="w-5 h-5 text-primary" />
@@ -83,6 +83,14 @@ export default async function DashboardPage() {
                   <div className="text-xl font-bold text-foreground">{stat.value}</div>
                   <div className="text-xs text-muted-foreground">{stat.label}</div>
                 </div>
+              )
+              
+              return stat.href ? (
+                <Link key={stat.label} href={stat.href} className="hover:opacity-80 transition-opacity">
+                  {content}
+                </Link>
+              ) : (
+                content
               )
             })}
           </div>
