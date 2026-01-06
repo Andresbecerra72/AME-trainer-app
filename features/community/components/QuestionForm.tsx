@@ -107,8 +107,8 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
   }
 
   const checkForDuplicates = async () => {
-    if (!formData.question_text || formData.question_text.length < 20) {
-      toast.error("Question text too short to check for duplicates")
+    if (!formData.question_text || formData.question_text.trim().length < 10) {
+      toast.error("Question text too short to check for duplicates (minimum 10 characters)")
       return
     }
 
@@ -155,7 +155,7 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
     }
 
     // Auto-check for duplicates if not already checked (create mode only)
-    if (mode === "create" && !duplicateChecked && formData.question_text && formData.question_text.length >= 20) {
+    if (mode === "create" && !duplicateChecked && formData.question_text && formData.question_text.trim().length >= 10) {
       setLoading(true)
       try {
         const results = await checkQuestionDuplicates(formData.question_text)
@@ -163,9 +163,24 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
         setDuplicateChecked(true)
         
         if (results.length > 0) {
-          toast.warning(`Found ${results.length} similar question(s). Please review before submitting.`)
+          toast.warning(`Found ${results.length} similar question(s). Please review them before continuing.`, {
+            duration: 5000,
+          })
           setLoading(false)
+          
+          // Scroll to duplicate check section
+          setTimeout(() => {
+            const duplicateSection = document.getElementById("duplicate-check-section")
+            if (duplicateSection) {
+              duplicateSection.scrollIntoView({ behavior: "smooth", block: "center" })
+            }
+          }, 100)
+          
           return
+        } else {
+          toast.success("No duplicates found. Submitting question...", {
+            duration: 2000,
+          })
         }
       } catch (error) {
         toast.error("Failed to check for duplicates")
@@ -181,12 +196,38 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
         toast.success("Question updated successfully!")
         router.push(`/protected/community/questions/${initialData.id}`)
       } else {
-        const question = await createCommunityQuestion(formData as QuestionFormValues)
-        toast.success("Question submitted for review!")
-        router.push("/protected/community")
+        try {
+          const question = await createCommunityQuestion(formData as QuestionFormValues)
+          toast.success("Question submitted for review!")
+          router.push("/protected/community")
+        } catch (createError: any) {
+          console.error("Create error caught:", createError)
+          // Check if it's a duplicate error
+          if (createError.message && createError.message.includes("similar")) {
+            toast.error(createError.message, { duration: 7000 })
+            // Force re-check to show duplicates
+            setDuplicateChecked(false)
+            const results = await checkQuestionDuplicates(formData.question_text!)
+            setDuplicates(results)
+            setDuplicateChecked(true)
+            
+            setTimeout(() => {
+              const duplicateSection = document.getElementById("duplicate-check-section")
+              if (duplicateSection) {
+                duplicateSection.scrollIntoView({ behavior: "smooth", block: "center" })
+              }
+            }, 200)
+          } else {
+            toast.error(createError.message || "Failed to submit question")
+          }
+          throw createError
+        }
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to submit question")
+      // Don't show duplicate toast here, already shown above
+      if (!error.message?.includes("similar")) {
+        toast.error(error.message || "Failed to submit question")
+      }
     } finally {
       setLoading(false)
     }
@@ -211,8 +252,11 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
       </div>
 
       {/* Duplicate Check */}
-      {formData.question_text && formData.question_text.length >= 20 && mode === "create" && (
-        <Card className="p-4 space-y-3 border-yellow-200 dark:border-yellow-900 bg-yellow-50/50 dark:bg-yellow-950/20">
+      {formData.question_text && formData.question_text.trim().length >= 10 && mode === "create" && (
+        <Card 
+          id="duplicate-check-section"
+          className="p-4 space-y-3 border-yellow-200 dark:border-yellow-900 bg-yellow-50/50 dark:bg-yellow-950/20"
+        >
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
             <p className="text-sm font-medium">Duplicate Detection</p>
@@ -221,7 +265,7 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
           {!duplicateChecked ? (
             <>
               <p className="text-xs text-muted-foreground">
-                Check if similar questions already exist before submitting.
+                We'll automatically check for duplicates when you submit, or you can check now.
               </p>
               <Button
                 type="button"
@@ -237,47 +281,71 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
                     Checking...
                   </>
                 ) : (
-                  "Check for Duplicates"
+                  "Check Now for Duplicates"
                 )}
               </Button>
             </>
           ) : duplicates.length === 0 ? (
             <div className="flex items-center gap-2 text-green-600">
               <CheckCircle className="h-4 w-4 flex-shrink-0" />
-              <p className="text-sm">No similar questions found. You're good to go!</p>
+              <p className="text-sm font-semibold">No similar questions found. You're good to go!</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                {duplicates.length} similar question(s) found:
-              </p>
+            <div className="space-y-3">
+              <div className="rounded-lg bg-yellow-100 dark:bg-yellow-900/20 p-3 border border-yellow-300 dark:border-yellow-700">
+                <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
+                  ⚠️ Similar questions detected
+                </p>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                  Found {duplicates.length} similar question(s). Please review them to avoid duplicates.
+                </p>
+              </div>
               {duplicates.map((dup) => (
-                <Card key={dup.id} className="p-3 bg-background">
-                  <p className="text-sm line-clamp-2 mb-2">{dup.question_text}</p>
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {dup.similarity}% similar
-                    </span>
-                    <Link href={`/protected/community/questions/${dup.id}`} target="_blank">
-                      <Button variant="ghost" size="sm" className="text-xs h-7">
-                        View Question
-                      </Button>
-                    </Link>
+                <Card key={dup.id} className="p-3 bg-background border-yellow-200 dark:border-yellow-800">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                      <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
+                        {dup.similarity}%
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm mb-2 line-clamp-3">{dup.question_text}</p>
+                      <Link href={`/protected/community/questions/${dup.id}`} target="_blank">
+                        <Button variant="outline" size="sm" className="text-xs h-7">
+                          View Full Question →
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </Card>
               ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setDuplicateChecked(false)
-                  setDuplicates([])
-                }}
-                className="w-full sm:w-auto text-xs"
-              >
-                Check Again
-              </Button>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setDuplicateChecked(false)
+                    setDuplicates([])
+                  }}
+                  className="text-xs"
+                >
+                  Check Again
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  onClick={() => {
+                    setDuplicateChecked(false)
+                    setDuplicates([])
+                    handleSubmit(new Event("submit") as any)
+                  }}
+                  className="text-xs bg-yellow-600 hover:bg-yellow-700"
+                >
+                  Submit Anyway
+                </Button>
+              </div>
             </div>
           )}
         </Card>

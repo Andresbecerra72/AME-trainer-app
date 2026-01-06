@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { validateQuestionUniqueness } from "@/features/questions/services/duplicates"
 
 export interface QuestionFormData {
   question_text: string
@@ -29,46 +30,48 @@ export interface QuestionFilters {
  * Create a new community question
  */
 export async function createCommunityQuestion(data: QuestionFormData) {
-  try {
-    const supabase = await createSupabaseServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      throw new Error("Authentication required")
-    }
-
-    // Prepare insert data with proper structure
-    const insertData = {
-      question_text: data.question_text,
-      option_a: data.option_a,
-      option_b: data.option_b,
-      option_c: data.option_c,
-      option_d: data.option_d,
-      correct_answer: data.correct_answer,
-      explanation: data.explanation || null,
-      topic_id: data.topic_id,
-      difficulty: data.difficulty,
-      author_id: user.id,
-      status: "pending",
-    }
-
-    const { data: question, error } = await supabase
-      .from("questions")
-      .insert(insertData)
-      .select()
-      .single()
-
-    if (error) {
-      console.error("Error creating question:", error)
-      throw new Error(error.message || "Failed to create question")
-    }
-
-    revalidatePath("/protected/community")
-    return question
-  } catch (error: any) {
-    console.error("createCommunityQuestion error:", error)
-    throw new Error(error.message || "Failed to create question")
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
+    throw new Error("Authentication required")
   }
+
+  const validation = await validateQuestionUniqueness(data.question_text)
+  
+  if (!validation.isUnique && validation.duplicate) {
+    const errorMsg = `This question is ${validation.duplicate.similarity}% similar to an existing question (ID: ${validation.duplicate.id.substring(0, 8)}). Please check existing questions before submitting.`
+    throw new Error(errorMsg)
+  }
+
+
+  // Prepare insert data with proper structure
+  const insertData = {
+    question_text: data.question_text,
+    option_a: data.option_a,
+    option_b: data.option_b,
+    option_c: data.option_c,
+    option_d: data.option_d,
+    correct_answer: data.correct_answer,
+    explanation: data.explanation || null,
+    topic_id: data.topic_id,
+    difficulty: data.difficulty,
+    author_id: user.id,
+    status: "pending",
+  }
+
+  const { data: question, error } = await supabase
+    .from("questions")
+    .insert(insertData)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Database error: ${error.message}`)
+  }
+
+  revalidatePath("/protected/community")
+  return question
 }
 
 /**
