@@ -8,7 +8,8 @@ import {
     PlusCircle, 
     Sparkles, 
     Target, 
-    Trophy, 
+    Trophy,
+    TrendingUp, 
     Users } from "lucide-react"
 
  export const mainCards = [
@@ -43,6 +44,14 @@ import {
       color: "text-purple-600",
       bgColor: "bg-purple-50 dark:bg-purple-950/20",
       path: "/protected/exam/setup",
+    },
+    {
+      title: "Progress Analytics",
+      description: "Track your performance",
+      icon: TrendingUp,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50 dark:bg-blue-950/20",
+      path: "/protected/analytics",
     },
     {
       title: "Community Exams",
