@@ -85,19 +85,29 @@ export function CommunityFilters({ topics }: CommunityFiltersProps) {
     if (search === searchParams.get("search")) return
     
     const timer = setTimeout(() => {
-      updateFilters()
+      updateFilters({ searchOverride: search })
     }, 500)
 
     return () => clearTimeout(timer)
   }, [search])
 
-  const updateFilters = () => {
+  const updateFilters = (overrides?: {
+    searchOverride?: string
+    topicOverride?: string
+    difficultyOverride?: string
+    sortOverride?: string
+  }) => {
     const params = new URLSearchParams()
     
-    if (search) params.set("search", search)
-    if (topic !== "all") params.set("topic", topic)
-    if (difficulty !== "all") params.set("difficulty", difficulty)
-    if (sort !== "recent") params.set("sort", sort)
+    const finalSearch = overrides?.searchOverride !== undefined ? overrides.searchOverride : search
+    const finalTopic = overrides?.topicOverride !== undefined ? overrides.topicOverride : topic
+    const finalDifficulty = overrides?.difficultyOverride !== undefined ? overrides.difficultyOverride : difficulty
+    const finalSort = overrides?.sortOverride !== undefined ? overrides.sortOverride : sort
+    
+    if (finalSearch) params.set("search", finalSearch)
+    if (finalTopic !== "all") params.set("topic", finalTopic)
+    if (finalDifficulty !== "all") params.set("difficulty", finalDifficulty)
+    if (finalSort !== "recent") params.set("sort", finalSort)
 
     startTransition(() => {
       router.push(`/protected/community?${params.toString()}`)
@@ -164,7 +174,7 @@ export function CommunityFilters({ topics }: CommunityFiltersProps) {
                 value={topic}
                 onValueChange={(value) => {
                   setTopic(value)
-                  updateFilters()
+                  updateFilters({ topicOverride: value })
                 }}
                 disabled={isPending}
               >
@@ -216,7 +226,7 @@ export function CommunityFilters({ topics }: CommunityFiltersProps) {
                   value={difficulty}
                   onValueChange={(value) => {
                     setDifficulty(value)
-                    updateFilters()
+                    updateFilters({ difficultyOverride: value })
                   }}
                   disabled={isPending}
                 >
@@ -239,7 +249,7 @@ export function CommunityFilters({ topics }: CommunityFiltersProps) {
                   value={sort}
                   onValueChange={(value) => {
                     setSort(value)
-                    updateFilters()
+                    updateFilters({ sortOverride: value })
                   }}
                   disabled={isPending}
                 >

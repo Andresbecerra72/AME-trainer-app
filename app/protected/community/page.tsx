@@ -44,7 +44,7 @@ export default async function CommunityPage({
         <CommunityFilters topics={topics} />
 
         {/* Questions List */}
-        <Suspense fallback={<div className="text-center py-8">Loading questions...</div>}>
+        <Suspense fallback={<div className="text-center py-8 text-sm text-muted-foreground">Loading questions...</div>}>
           <CommunityContent search={search} topic={topic} difficulty={difficulty} sort={sort} />
         </Suspense>
       </main>
