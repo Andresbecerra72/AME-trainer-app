@@ -1,26 +1,20 @@
 import { MobileHeader } from "@/components/mobile-header"
-import { Skeleton } from "@/components/ui/skeleton"
+import { BottomNav } from "@/components/bottom-nav"
+import { AircraftLoadingAnimation } from "@/components/aircraft-loading"
 
 export default function BookmarksLoading() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <MobileHeader title="Bookmarks" showBack />
 
-      <div className="p-4 space-y-4">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="bg-card border border-border rounded-lg p-4">
-            <div className="space-y-3">
-              <Skeleton className="h-12 w-full" />
-              <div className="flex items-center gap-4">
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-6 w-20" />
-              </div>
-              <Skeleton className="h-4 w-48" />
-            </div>
-          </div>
-        ))}
-      </div>
+      <main className="container max-w-2xl mx-auto px-4 py-4 sm:py-6 flex items-center justify-center min-h-[60vh]">
+        <AircraftLoadingAnimation 
+          title="Loading bookmarks"
+          description="Fetching your saved questions..."
+        />
+      </main>
+
+      <BottomNav />
     </div>
   )
 }
