@@ -8,13 +8,14 @@ import { StudyStreakWidget } from "@/components/study-streak-widget"
 import { getSession } from "@/features/auth/services/getSession"
 import { getUserQuestions } from "@/features/questions/services/question.api"
 import { getUserComments } from "@/features/comments/services/comments.api"
-import { mainCards } from "./dashboard.mock"
 import { getRecentQuestions } from "@/features/questions/services/question.server"
 import { getUserBookmarks } from "@/features/bookmarks/services/bookmarks.api"
 import { getUserUnreadNotifications } from "@/features/notifications/services/notifications.server"
 import { StatCard } from "@/features/dashboard/components/StatCard"
 import { QuestionPreviewCard } from "@/features/dashboard/components/QuestionPreviewCard"
 import { ActionCard } from "@/features/dashboard/components/ActionCard"
+import { getQuickActionsForRole } from "@/features/quick-actions/services/quick-actions.api"
+import * as Icons from "lucide-react"
 
 export default async function DashboardPage() {
   const { user, profile, role } = await getSession() 
@@ -31,6 +32,23 @@ export default async function DashboardPage() {
   // Fetch unread notifications count
   const { count: unreadNotifications } = await getUserUnreadNotifications(user.id)
     
+  // Fetch Quick Actions for current role
+  const quickActions = await getQuickActionsForRole(role)
+
+  // Transform quick actions to match ActionCard props
+  const mainCards = quickActions.map((action) => {
+    // Dynamically get the icon component from lucide-react
+    const IconComponent = (Icons as any)[action.icon] || Icons.Circle
+    
+    return {
+      title: action.title,
+      description: action.description,
+      icon: IconComponent,
+      color: action.color,
+      bgColor: action.bg_color,
+      path: action.path,
+    }
+  })
 
   // Fetch recent community questions
   const recentQuestions  = await getRecentQuestions()    
@@ -79,7 +97,7 @@ export default async function DashboardPage() {
             </div>
           </div>
           <p className="text-primary-foreground/90 text-sm sm:text-base">
-            Welcome back, <span className="font-semibold">{profile?.display_name || "User"}</span>! 
+            Welcome back, <span className="font-semibold">{profile?.full_name || "User"}</span>! 
             Ready to continue learning?
           </p>
         </div>
@@ -181,12 +199,12 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          {/* Right Column - Quick Actions */}
+          {/* Right Column - Quick Actions (Primary 4) */}
           <div className="lg:col-span-1 space-y-6">
             <section className="animate-in fade-in slide-in-from-right-4 duration-500 delay-600">
               <h2 className="text-lg sm:text-xl font-bold text-foreground mb-4">Quick Actions</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4">
-                {mainCards.map((card, index) => (
+                {mainCards.slice(0, 4).map((card, index) => (
                   <div
                     key={card.title}
                     style={{ animationDelay: `${(index + 6) * 100}ms` }}
@@ -199,6 +217,24 @@ export default async function DashboardPage() {
             </section>
           </div>
         </div>
+
+        {/* Additional Quick Actions - Full Width */}
+        {mainCards.length > 4 && (
+          <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-900">
+            <h2 className="text-lg sm:text-xl font-bold text-foreground mb-4">More Actions</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+              {mainCards.slice(4).map((card, index) => (
+                <div
+                  key={card.title}
+                  style={{ animationDelay: `${(index + 10) * 100}ms` }}
+                  className="animate-in fade-in slide-in-from-bottom-2"
+                >
+                  <ActionCard {...card} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       <BottomNav userRole={role} unreadNotifications={unreadNotifications || 0} />
