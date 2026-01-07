@@ -168,11 +168,11 @@ export async function voteQuestion(questionId: string, voteType: number) {
 
   if (existingVote) {
     if (existingVote.vote_type === voteType) {
-      // Remove vote
+      // Remove vote (toggle off)
       await supabase.from("votes").delete().eq("id", existingVote.id)
       await updateQuestionVotes(questionId, -voteType)
     } else {
-      // Change vote
+      // Change vote (from upvote to downvote or vice versa)
       await supabase.from("votes").update({ vote_type: voteType }).eq("id", existingVote.id)
       await updateQuestionVotes(questionId, voteType * 2)
     }
@@ -183,6 +183,7 @@ export async function voteQuestion(questionId: string, voteType: number) {
   }
 
   revalidatePath("/community")
+  revalidatePath("/protected/community")
 }
 
 async function updateQuestionVotes(questionId: string, delta: number) {
