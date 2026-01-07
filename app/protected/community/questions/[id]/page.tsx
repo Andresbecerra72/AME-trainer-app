@@ -3,17 +3,19 @@ import { MobileCard } from "@/components/mobile-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Bookmark, Flag, CheckCircle, ThumbsUp, MessageSquare, AlertTriangle } from "lucide-react"
+import { Bookmark, Flag, CheckCircle, MessageSquare, AlertTriangle } from "lucide-react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Textarea } from "@/components/ui/textarea"
 import { BottomNav } from "@/components/bottom-nav"
 import { ShareButton } from "@/components/share-button"
+import { VoteControls } from "@/components/vote-controls"
 import { getSession } from "@/features/auth/services/getSession"
 import { getQuestionById } from "@/features/questions/services/question.server"
 import { createAddCommentHandler, getCommentsByQuestionId } from "@/features/comments/services/comments.server"
 import { createToggleBookmarkHandler, isBookmarkedByUser } from "@/features/bookmarks/services/bookmarks.server"
 import { createReportQuestionHandler, hasUserReportedQuestion, getQuestionReportsCount } from "@/features/reports/services/reports.server"
+import { getUserVoteOnQuestion, getQuestionVoteCounts } from "@/features/votes/services/user-vote.api"
 import { ReportDialog } from "@/features/reports/components/report-dialog"
 
 export default async function QuestionDetailPage({ params }: { params: { id: string } }) {
@@ -29,13 +31,16 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
   // Check if user has bookmarked
   let isBookmarked = false
   let hasReported = false
+  let userVote: number | undefined
   if (user) {
     isBookmarked = await isBookmarkedByUser(user.id, id)
     hasReported = await hasUserReportedQuestion(user.id, id)
+    userVote = await getUserVoteOnQuestion(id)
   }
 
-  // Get reports count
+  // Get reports count and vote counts
   const reportsCount = await getQuestionReportsCount(id)
+  const { upvotes, downvotes } = await getQuestionVoteCounts(id)
 
   const isAuthor = user && question.author_id === user.id
   const canEdit = isAuthor || role === "admin" || role === "super_admin"
@@ -154,15 +159,17 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
               <ReportDialog reportAction={reportQuestion} hasReported={hasReported} />
             </div>
 
-            {/* Stats */}
-            <div className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm text-muted-foreground pt-2 border-t">
-              <div className="flex items-center gap-1.5">
-                <ThumbsUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span>{question.votes || 0} <span className="hidden sm:inline">votes</span></span>
-              </div>
-              <div className="flex items-center gap-1.5">
+            {/* Voting and Stats */}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <VoteControls
+                questionId={id}
+                upvotes={upvotes}
+                downvotes={downvotes}
+                userVote={userVote}
+              />
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
                 <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span>{comments?.length || 0} <span className="hidden sm:inline">comments</span></span>
+                <span>{comments?.length || 0}</span>
               </div>
             </div>
           </div>

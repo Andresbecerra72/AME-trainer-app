@@ -1,7 +1,8 @@
 import Link from "next/link"
-import { MessageCircle, CheckCircle2, Eye, ThumbsUp, User } from "lucide-react"
+import { MessageCircle, CheckCircle2, Eye, ThumbsUp, ThumbsDown, User } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface CommunityQuestionCardProps {
   question: {
@@ -17,6 +18,7 @@ interface CommunityQuestionCardProps {
     comments_count?: number
     views_count?: number
     upvotes?: number
+    downvotes?: number
     created_at: string
     author?: {
       id: string
@@ -46,6 +48,10 @@ export function CommunityQuestionCard({ question }: CommunityQuestionCardProps) 
     .join("")
     .toUpperCase()
     .slice(0, 2)
+  
+  const upvotes = question.upvotes || 0
+  const downvotes = question.downvotes || 0
+  const score = upvotes - downvotes
 
   return (
     <Link href={`/protected/community/questions/${question.id}`}>
@@ -98,6 +104,31 @@ export function CommunityQuestionCard({ question }: CommunityQuestionCardProps) 
           {/* Stats Footer */}
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t">
             <div className="flex items-center gap-3">
+              {/* Vote Score */}
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted/50 border">
+                <div className="flex items-center gap-0.5 text-green-600">
+                  <ThumbsUp className="h-3 w-3" />
+                  <span className="text-[10px] font-medium">{upvotes}</span>
+                </div>
+                <div className="h-2.5 w-px bg-border" />
+                <div className="flex items-center gap-0.5 text-red-600">
+                  <ThumbsDown className="h-3 w-3" />
+                  <span className="text-[10px] font-medium">{downvotes}</span>
+                </div>
+                <div className="h-2.5 w-px bg-border" />
+                <span 
+                  className={cn(
+                    "text-[10px] font-bold tabular-nums min-w-[20px] text-center",
+                    score > 0 && "text-green-600",
+                    score < 0 && "text-red-600",
+                    score === 0 && "text-muted-foreground"
+                  )}
+                >
+                  {score > 0 ? "+" : ""}{score}
+                </span>
+              </div>
+
+              {/* Other Stats */}
               <div className="flex items-center gap-1">
                 <MessageCircle className="h-3.5 w-3.5" />
                 <span>{question.comments_count || 0}</span>
@@ -106,12 +137,8 @@ export function CommunityQuestionCard({ question }: CommunityQuestionCardProps) 
                 <Eye className="h-3.5 w-3.5" />
                 <span>{question.views_count || 0}</span>
               </div>
-              <div className="flex items-center gap-1">
-                <ThumbsUp className="h-3.5 w-3.5" />
-                <span>{question.upvotes || 0}</span>
-              </div>
             </div>
-            <span className="text-[10px] text-primary/60">Click to view details →</span>
+            <span className="text-[10px] text-primary/60">View →</span>
           </div>
         </div>
       </div>

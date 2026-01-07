@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { revalidatePath } from "next/cache"
 
 export async function getCommentsByQuestionId(id: string) {
   const supabase = await createSupabaseServerClient()
@@ -25,10 +26,18 @@ export function createAddCommentHandler(questionId: string) {
 
     if (!user || !content?.trim()) return
 
-    await supabase.from("comments").insert({
+    // Insert comment
+    const { error: commentError } = await supabase.from("comments").insert({
       question_id: questionId,
       author_id: user.id,
       content: content.trim(),
     })
+
+    if (!commentError) {
+      // The trigger in the database will automatically update comments_count
+      // But we revalidate the paths to refresh the UI
+      revalidatePath(`/protected/community/questions/${questionId}`)
+      revalidatePath(`/protected/community`)
+    }
   }
 }
