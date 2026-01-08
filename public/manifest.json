@@ -1,0 +1,92 @@
+{
+  "name": "AME Exam Trainer - Aircraft Maintenance Engineer Study App",
+  "short_name": "AME Trainer",
+  "description": "Master your AME exams with comprehensive study materials, practice questions, and exam simulation",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#003A63",
+  "theme_color": "#003A63",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard - Your study progress at a glance"
+    },
+    {
+      "src": "/screenshots/practice.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Practice Mode - Study at your own pace"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your study progress",
+      "url": "/protected/dashboard",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Practice",
+      "short_name": "Practice",
+      "description": "Start practicing questions",
+      "url": "/protected/practice",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Mock Exam",
+      "short_name": "Exam",
+      "description": "Take a mock exam",
+      "url": "/protected/exams",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/protected/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false
+}

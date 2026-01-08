@@ -1,26 +1,79 @@
-<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <style>
-    @media (prefers-color-scheme: light) {
-      .background { fill: black; }
-      .foreground { fill: white; }
-    }
-    @media (prefers-color-scheme: dark) {
-      .background { fill: white; }
-      .foreground { fill: black; }
-    }
-  </style>
-  <g clip-path="url(#clip0_7960_43945)">
-    <rect class="background" width="180" height="180" rx="37" />
-    <g style="transform: scale(95%); transform-origin: center">
-      <path class="foreground"
-        d="M101.141 53H136.632C151.023 53 162.689 64.6662 162.689 79.0573V112.904H148.112V79.0573C148.112 78.7105 148.098 78.3662 148.072 78.0251L112.581 112.898C112.701 112.902 112.821 112.904 112.941 112.904H148.112V126.672H112.941C98.5504 126.672 86.5638 114.891 86.5638 100.5V66.7434H101.141V100.5C101.141 101.15 101.191 101.792 101.289 102.422L137.56 66.7816C137.255 66.7563 136.945 66.7434 136.632 66.7434H101.141V53Z" />
-      <path class="foreground"
-        d="M65.2926 124.136L14 66.7372H34.6355L64.7495 100.436V66.7372H80.1365V118.47C80.1365 126.278 70.4953 129.958 65.2926 124.136Z" />
-    </g>
-  </g>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <clipPath id="clip0_7960_43945">
-      <rect width="180" height="180" fill="white" />
-    </clipPath>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#003A63;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00294A;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFCC00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFB800;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3"/>
+    </filter>
   </defs>
+  
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGradient)"/>
+  
+  <!-- Outer badge circle -->
+  <circle cx="256" cy="256" r="190" fill="none" stroke="url(#accentGradient)" stroke-width="8" opacity="0.3"/>
+  <circle cx="256" cy="256" r="170" fill="none" stroke="url(#accentGradient)" stroke-width="3" opacity="0.5"/>
+  
+  <!-- Aircraft silhouette (stylized and modern) -->
+  <g transform="translate(256, 180)">
+    <!-- Fuselage -->
+    <ellipse cx="0" cy="0" rx="85" ry="22" fill="url(#accentGradient)" filter="url(#shadow)"/>
+    <rect x="-85" y="-8" width="170" height="16" rx="8" fill="url(#accentGradient)"/>
+    
+    <!-- Wings (swept back design) -->
+    <path d="M -90 0 L -160 35 L -150 42 L -80 10 Z" fill="#FFCC00" opacity="0.95"/>
+    <path d="M 90 0 L 160 35 L 150 42 L 80 10 Z" fill="#FFCC00" opacity="0.95"/>
+    
+    <!-- Tail -->
+    <path d="M 80 -5 L 110 -35 L 105 -38 L 80 -10 Z" fill="#FFD633"/>
+    <path d="M 80 5 L 95 25 L 90 28 L 80 12 Z" fill="#FFD633"/>
+    
+    <!-- Cockpit highlight -->
+    <ellipse cx="-60" cy="0" rx="18" ry="10" fill="#FFFFFF" opacity="0.4"/>
+    
+    <!-- Engines (small details) -->
+    <circle cx="-40" cy="30" r="6" fill="#003A63"/>
+    <circle cx="40" cy="30" r="6" fill="#003A63"/>
+  </g>
+  
+  <!-- Checkmark for "approved/certified" concept -->
+  <g transform="translate(256, 320)">
+    <circle cx="0" cy="0" r="55" fill="#FFFFFF" opacity="0.15"/>
+    <circle cx="0" cy="0" r="50" fill="url(#accentGradient)"/>
+    <path d="M -20 -5 L -8 10 L 25 -25" 
+          stroke="#003A63" 
+          stroke-width="12" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" 
+          fill="none"/>
+  </g>
+  
+  <!-- Decorative elements - stars for excellence -->
+  <g opacity="0.6">
+    <path d="M 120 120 L 125 130 L 135 132 L 127 140 L 129 150 L 120 145 L 111 150 L 113 140 L 105 132 L 115 130 Z" 
+          fill="#FFCC00"/>
+    <path d="M 390 120 L 395 130 L 405 132 L 397 140 L 399 150 L 390 145 L 381 150 L 383 140 L 375 132 L 385 130 Z" 
+          fill="#FFCC00"/>
+    <path d="M 140 390 L 145 400 L 155 402 L 147 410 L 149 420 L 140 415 L 131 420 L 133 410 L 125 402 L 135 400 Z" 
+          fill="#FFCC00" opacity="0.7"/>
+    <path d="M 370 390 L 375 400 L 385 402 L 377 410 L 379 420 L 370 415 L 361 420 L 363 410 L 355 402 L 365 400 Z" 
+          fill="#FFCC00" opacity="0.7"/>
+  </g>
+  
+  <!-- Subtle text hint "AME" integrated into design -->
+  <g transform="translate(256, 430)" opacity="0.4">
+    <text x="0" y="0" 
+          font-family="Arial, sans-serif" 
+          font-size="32" 
+          font-weight="900" 
+          fill="#FFCC00" 
+          text-anchor="middle"
+          letter-spacing="8">AME</text>
+  </g>
 </svg>

@@ -4,6 +4,8 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
 import { UserProvider } from "@/features/auth/components/UserProvider"
+import { RegisterServiceWorker } from "./register-sw"
+import { InstallPrompt } from "@/components/install-prompt"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -13,22 +15,44 @@ export const metadata: Metadata = {
   title: "AME Exam Trainer - Aircraft Maintenance Engineer Study App",
   description: "Master your AME exams with comprehensive study materials, practice questions, and exam simulation",
   generator: "v0.app",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "AME Trainer",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: [
       {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
+        url: "/icon-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
       },
       {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
+        url: "/icon-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/icon-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
       },
       {
         url: "/icon.svg",
         type: "image/svg+xml",
       },
     ],
-    apple: "/apple-icon.png",
+    shortcut: [
+      { url: "/icon-32x32.png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "180x180" },
+      { url: "/icon-192x192.png", sizes: "192x192" },
+    ],
   },
 }
 
@@ -49,15 +73,24 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    //TODO: corrregir esto de la hidratacion
-    // Añade suppressHydrationWarning={true} aquí:
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/icon-32x32.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      </head>
       <body
         className={`font-sans antialiased`}
         suppressHydrationWarning={true} 
       >
+        <RegisterServiceWorker />
         <UserProvider>
           {children}
+          <InstallPrompt />
         </UserProvider>
         <Toaster />
         <Analytics />
