@@ -36,3 +36,5 @@ coverage
 
 # PDF.js worker (generated automatically)
 public/pdf-worker/
+.vercel
+.env*.local

@@ -1,3 +1,5 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { WifiOff, RefreshCw } from "lucide-react"
@@ -42,9 +44,4 @@ export default function OfflinePage() {
       </Card>
     </div>
   )
-}
-
-export const metadata = {
-  title: "Offline - AME Exam Trainer",
-  description: "You are currently offline",
 }

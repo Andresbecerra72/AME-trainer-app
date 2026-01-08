@@ -10,9 +10,10 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { supabaseBrowserClient } from "@/lib/supabase/client";
+import { use } from "react";
 
-export default async function TopicQuestionsPage({ params }: { params: { id: string } }) {
-  const { id } = await params;
+export default function TopicQuestionsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState("");
