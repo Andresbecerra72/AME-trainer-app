@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { UserProvider } from "@/features/auth/components/UserProvider"
 import { RegisterServiceWorker } from "./register-sw"
 import { InstallPrompt } from "@/components/install-prompt"
+import { NetworkStatusBanner } from "@/components/network-status-banner"
+import { PushNotificationPrompt } from "@/components/push-notification-prompt"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -88,9 +90,11 @@ export default function RootLayout({
         suppressHydrationWarning={true} 
       >
         <RegisterServiceWorker />
+        <NetworkStatusBanner />
         <UserProvider>
           {children}
           <InstallPrompt />
+          <PushNotificationPrompt />
         </UserProvider>
         <Toaster />
         <Analytics />

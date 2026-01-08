@@ -13,7 +13,15 @@ export function RegisterServiceWorker() {
       navigator.serviceWorker
         .register("/sw.js", { scope: "/" })
         .then((registration) => {
-          console.log("✅ Service Worker registered:", registration.scope)
+          console.log("✅ Service Worker v2.0.0 registered:", registration.scope)
+
+          // Track service worker registration
+          if (typeof window !== "undefined" && (window as any).gtag) {
+            (window as any).gtag("event", "sw_registered", {
+              event_category: "pwa",
+              event_label: "Service Worker v2.0.0",
+            })
+          }
 
           // Check for updates periodically
           registration.addEventListener("updatefound", () => {
@@ -28,7 +36,7 @@ export function RegisterServiceWorker() {
                 ) {
                   console.log("✨ New Service Worker installed")
                   
-                  // Optionally notify user about update
+                  // Notify user about update
                   if (
                     window.confirm(
                       "New version available! Reload to update?"
@@ -52,6 +60,14 @@ export function RegisterServiceWorker() {
         })
         .catch((error) => {
           console.error("❌ Service Worker registration failed:", error)
+          
+          // Track registration failure
+          if (typeof window !== "undefined" && (window as any).gtag) {
+            (window as any).gtag("event", "sw_registration_failed", {
+              event_category: "pwa",
+              event_label: error.message,
+            })
+          }
         })
 
       // Handle controller change (new SW activated)
@@ -62,30 +78,74 @@ export function RegisterServiceWorker() {
       // Listen for messages from service worker
       navigator.serviceWorker.addEventListener("message", (event) => {
         console.log("📬 Message from Service Worker:", event.data)
+        
+        if (event.data.type === "CACHE_SIZE") {
+          console.log("Cache size:", event.data.size, "items")
+        }
       })
 
       // Track app installation
       window.addEventListener("appinstalled", () => {
         console.log("📱 PWA installed successfully")
         
-        // Track with analytics if available
+        // Track with analytics
         if (typeof window !== "undefined" && (window as any).gtag) {
           (window as any).gtag("event", "app_installed", {
             event_category: "engagement",
             event_label: "PWA Installation",
           })
         }
+
+        // Hide install prompt
+        localStorage.removeItem("pwa-install-dismissed")
       })
 
       // Handle online/offline events
       window.addEventListener("online", () => {
         console.log("🌐 Back online")
-        // Optionally sync data here
+        
+        // Track online event
+        if (typeof window !== "undefined" && (window as any).gtag) {
+          (window as any).gtag("event", "network_online", {
+            event_category: "connectivity",
+          })
+        }
+
+        // Trigger background sync if needed
+        if ("serviceWorker" in navigator && "sync" in registration) {
+          navigator.serviceWorker.ready.then((reg) => {
+            return reg.sync.register("sync-study-progress")
+          }).catch((error) => {
+            console.log("Background sync registration failed:", error)
+          })
+        }
       })
 
       window.addEventListener("offline", () => {
         console.log("📵 Offline mode")
+        
+        // Track offline event
+        if (typeof window !== "undefined" && (window as any).gtag) {
+          (window as any).gtag("event", "network_offline", {
+            event_category: "connectivity",
+          })
+        }
       })
+
+      // Track PWA launch method
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone === true
+
+      if (isStandalone) {
+        console.log("🚀 Launched as PWA")
+        
+        if (typeof window !== "undefined" && (window as any).gtag) {
+          (window as any).gtag("event", "pwa_launch", {
+            event_category: "engagement",
+            event_label: "Standalone Mode",
+          })
+        }
+      }
     }
   }, [])
 
