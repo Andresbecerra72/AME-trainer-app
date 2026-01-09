@@ -1,14 +1,14 @@
-import type React from "react"
-import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
-import { Toaster } from "@/components/ui/toaster"
-import { UserProvider } from "@/features/auth/components/UserProvider"
-import { RegisterServiceWorker } from "./register-sw"
 import { InstallPrompt } from "@/components/install-prompt"
 import { NetworkStatusBanner } from "@/components/network-status-banner"
 import { PushNotificationPrompt } from "@/components/push-notification-prompt"
+import { Toaster } from "@/components/ui/toaster"
+import { UserProvider } from "@/features/auth/components/UserProvider"
+import { Analytics } from "@vercel/analytics/next"
+import type { Metadata, Viewport } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
+import type React from "react"
 import "./globals.css"
+import { RegisterServiceWorker } from "./register-sw"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -61,8 +61,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#003A63" },
     { media: "(prefers-color-scheme: dark)", color: "#FFCC00" },
