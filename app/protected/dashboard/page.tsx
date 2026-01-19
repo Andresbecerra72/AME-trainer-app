@@ -5,7 +5,6 @@ import Link from "next/link"
 import { AnnouncementBanner } from "@/components/announcement-banner"
 import { getActiveAnnouncements, getStudyStreak, getRecommendedQuestions } from "@/lib/db-actions"
 import { StudyStreakWidget } from "@/components/study-streak-widget"
-import { getSession } from "@/features/auth/services/getSession"
 import { getUserQuestions } from "@/features/questions/services/question.api"
 import { getUserComments } from "@/features/comments/services/comments.api"
 import { getRecentQuestions } from "@/features/questions/services/question.server"
@@ -15,10 +14,12 @@ import { StatCard } from "@/features/dashboard/components/StatCard"
 import { QuestionPreviewCard } from "@/features/dashboard/components/QuestionPreviewCard"
 import { ActionCard } from "@/features/dashboard/components/ActionCard"
 import { getQuickActionsForRole } from "@/features/quick-actions/services/quick-actions.api"
+import { getSession } from "@/features/auth" // Server-side: usa getSession, NO useAuth
 import * as Icons from "lucide-react"
 
 export default async function DashboardPage() {
-  const { user, profile, role } = await getSession() 
+  // Server Component: usa getSession() con await
+  const { user, profile, role } = await getSession()
 
   if (!user) {
     redirect("/public/auth/login")

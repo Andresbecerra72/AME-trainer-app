@@ -1,3 +1,5 @@
+"use client"
+
 import { useAuthContext } from "../components/UserProvider"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"

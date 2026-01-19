@@ -1,6 +1,14 @@
 /**
  * Auth Module - Sistema de autenticación centralizado
  * 
+ * ⚠️ IMPORTANTE: Este archivo exporta SOLO funciones de servidor
+ * 
+ * Para Server Components y Server Actions:
+ *   import { getSession } from "@/features/auth"
+ * 
+ * Para Client Components:
+ *   import { useAuth } from "@/features/auth/client"
+ * 
  * Sistema profesional de manejo de autenticación con:
  * - Cache en memoria del perfil de usuario
  * - Sincronización en tiempo real con Supabase Auth
@@ -9,28 +17,11 @@
  * - Reducción de llamadas innecesarias a la API
  */
 
-// Provider principal
-export { AuthProvider, UserProvider, useAuthContext } from "./components/UserProvider"
+// ============================================
+// SOLO EXPORTACIONES DE SERVIDOR
+// ============================================
 
-// Hooks especializados
-export {
-  useAuth,
-  useCurrentUser,
-  useProfile,
-  useRole,
-  useIsAuthenticated,
-  useRequireAuth,
-  useRequireRole,
-  useRefreshProfile,
-  useUser, // Deprecated
-} from "./hooks/useAuth"
-
-export { useRole as useRoleHook, useHasRole } from "./hooks/useRole"
-
-// Tipos
-export type { AuthState, AuthContextType } from "./types/auth.types"
-
-// Server actions
+// Server Actions
 export {
   loginUser,
   registerUser,
@@ -38,10 +29,11 @@ export {
   updateProfileFullName,
 } from "./services/auth.api"
 
+// Session Management (Server-side)
 export { getSession } from "./services/getSession"
 
-// Validaciones
+// Validaciones (Server-side)
 export { loginSchema, registerSchema } from "./utils/auth.validation"
 
-// Componentes
-export { AuthForm } from "./components/AuthForm"
+// Tipos (compartidos)
+export type { AuthState, AuthContextType } from "./types/auth.types"

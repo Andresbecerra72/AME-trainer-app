@@ -5,7 +5,7 @@ import { MobileHeader } from "@/components/mobile-header"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { Plane } from "lucide-react"
-import { AuthForm } from "@/features/auth/components/AuthForm"
+import { AuthForm } from "@/features/auth/client"
 
 export default function LoginPage() {
   const [tab, setTab] = useState("login")

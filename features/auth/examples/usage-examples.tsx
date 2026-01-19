@@ -5,7 +5,7 @@
  * el sistema de autenticación mejorado en diferentes escenarios.
  */
 
-import { useAuth, useProfile, useRole, useRequireAuth, useRefreshProfile } from "@/features/auth"
+import { useAuth, useProfile, useRole, useRequireAuth, useRefreshProfile } from "@/features/auth/client"
 
 // ========================================
 // EJEMPLO 1: Dashboard con información completa

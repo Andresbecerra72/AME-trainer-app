@@ -1,4 +1,4 @@
-import { AuthForm } from "@/features/auth/components/AuthForm";
+import { AuthForm } from "@/features/auth/client";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 
 export default function RegisterPage() {
