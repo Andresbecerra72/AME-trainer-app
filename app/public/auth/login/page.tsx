@@ -1,17 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { MobileHeader } from "@/components/mobile-header"
-import { PrimaryButton } from "@/components/primary-button"
-import { SecondaryButton } from "@/components/secondary-button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { Plane } from "lucide-react"
 import { AuthForm } from "@/features/auth/components/AuthForm"
 
 export default function LoginPage() {
-  const router = useRouter()
   const [tab, setTab] = useState("login")
 
   return (
@@ -49,16 +45,6 @@ export default function LoginPage() {
             </TabsContent>
           </Tabs>
         </Card>
-
-        {/* GUEST ACCESS */}
-        <div className="mt-6">
-          <SecondaryButton onClick={() => router.push("/protected/dashboard")} className="w-full">
-            Continue as Guest
-          </SecondaryButton>
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Limited features available in guest mode
-          </p>
-        </div>
 
       </div>
     </div>

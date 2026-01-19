@@ -5,12 +5,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { useUser } from "@/features/auth/components/UserProvider"
+import { useProfile } from "@/features/auth/hooks/useAuth"
 import { updateProfileSchema } from "../utils/profile.validation"
 import { updateProfile, uploadAvatar } from "../services/profile.api"
 
 export function ProfileForm() {
-  const { profile } = useUser()
+  const profile = useProfile()
 
   const [form, setForm] = useState({
     full_name: profile?.full_name ?? "",
