@@ -48,7 +48,6 @@ export interface User {
   id: string
   email: string
   name?: string
-  isGuest: boolean
 }
 
 export type UserRole = "user" | "admin" | "super_admin"

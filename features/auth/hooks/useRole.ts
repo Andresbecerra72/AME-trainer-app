@@ -1,13 +1,14 @@
-import { useUser } from "../components/UserProvider"
+"use client"
+
+import { useRole as useRoleFromAuth } from "./useAuth"
 
 
 export function useRole() {
-  const { role } = useUser()
-  return role
+  return useRoleFromAuth()
 }
 
 export function useHasRole(required: string | string[]) {
-  const { role } = useUser()
+  const role = useRoleFromAuth()
 
   if (Array.isArray(required)) {
     return required.includes(role)

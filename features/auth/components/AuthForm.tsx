@@ -1,73 +1,104 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { loginSchema, registerSchema } from "../utils/auth.validation"
 import { loginUser, registerUser, updateProfileFullName } from "../services/auth.api"
+import { useRefreshProfile } from "../hooks/useAuth"
+
+interface FormState {
+  full_name: string
+  email: string
+  password: string
+  confirmPassword: string
+}
+
+const initialFormState: FormState = {
+  full_name: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+}
 
 export function AuthForm({ type }: { type: "login" | "register" }) {
   const router = useRouter()
+  const refreshProfile = useRefreshProfile()
   const isLogin = type === "login"
 
-  const [form, setForm] = useState({
-    full_name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  })
-
+  const [form, setForm] = useState<FormState>(initialFormState)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
-  }
+    // Limpiar error al empezar a escribir
+    if (error) setError("")
+  }, [error])
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+  const handleLogin = useCallback(async () => {
+    loginSchema.parse(form)
 
-    try {
-      if (isLogin) {
-        // Validate
-        loginSchema.parse(form)
+    const { error } = await loginUser(form.email, form.password)
+    if (error) throw error
 
-        const { error } = await loginUser(form.email, form.password)
-        if (error) throw error
+    // El AuthProvider detectará el cambio automáticamente
+    router.replace("/protected/dashboard")
+  }, [form, router])
 
-        router.replace("/protected/dashboard")
-        return
-      }
+  const handleRegister = useCallback(async () => {
+    registerSchema.parse(form)
 
-      // REGISTER FLOW
-      registerSchema.parse(form)
-
-      if (form.password !== form.confirmPassword) {
-        throw new Error("Passwords do not match")
-      }
-
-      const { data, error } = await registerUser(form.email, form.password, form.full_name)
-
-      if (error) throw error
-
-      // Update profile name (some auth triggers don't propagate metadata)
-      if (data?.user?.id) {
-        await updateProfileFullName(data.user.id, form.full_name)
-      }
-
-      router.replace("/public/auth/login")
-
-    } catch (err: any) {
-      setError(err.message || "Something went wrong")
-    } finally {
-      setLoading(false)
+    if (form.password !== form.confirmPassword) {
+      throw new Error("Passwords do not match")
     }
-  }
+
+    const { data, error } = await registerUser(
+      form.email,
+      form.password,
+      form.full_name
+    )
+
+    if (error) throw error
+
+    // Actualizar perfil con nombre completo
+    if (data?.user?.id) {
+      await updateProfileFullName(data.user.id, form.full_name)
+    }
+
+    // Limpiar formulario
+    setForm(initialFormState)
+    
+    router.replace("/public/auth/login")
+  }, [form, router])
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      setError("")
+      setLoading(true)
+
+      try {
+        if (isLogin) {
+          await handleLogin()
+        } else {
+          await handleRegister()
+        }
+      } catch (err: any) {
+        console.error("Auth error:", err)
+        setError(
+          err.message || 
+          "An unexpected error occurred. Please try again."
+        )
+      } finally {
+        setLoading(false)
+      }
+    },
+    [isLogin, handleLogin, handleRegister]
+  )
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full">
@@ -81,6 +112,8 @@ export function AuthForm({ type }: { type: "login" | "register" }) {
             placeholder="John Doe"
             value={form.full_name}
             onChange={handleChange}
+            disabled={loading}
+            required
           />
         </div>
       )}
@@ -95,6 +128,8 @@ export function AuthForm({ type }: { type: "login" | "register" }) {
           placeholder="you@example.com"
           value={form.email}
           onChange={handleChange}
+          disabled={loading}
+          required
         />
       </div>
 
@@ -108,6 +143,9 @@ export function AuthForm({ type }: { type: "login" | "register" }) {
           placeholder="•••••••"
           value={form.password}
           onChange={handleChange}
+          disabled={loading}
+          required
+          minLength={6}
         />
       </div>
 
@@ -122,11 +160,18 @@ export function AuthForm({ type }: { type: "login" | "register" }) {
             placeholder="•••••••"
             value={form.confirmPassword}
             onChange={handleChange}
+            disabled={loading}
+            required
+            minLength={6}
           />
         </div>
       )}
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && (
+        <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+          {error}
+        </div>
+      )}
 
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Processing..." : isLogin ? "Login" : "Create Account"}

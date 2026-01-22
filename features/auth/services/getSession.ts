@@ -1,8 +1,22 @@
 "use server"
 
+import { cache } from "react"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
-export async function getSession() {
+/**
+ * Obtiene la sesión del usuario con cache automático por request
+ * 
+ * Usa React.cache() para evitar llamadas duplicadas dentro del mismo
+ * render tree del servidor. Si llamas getSession() múltiples veces
+ * en el mismo request, solo ejecuta la consulta una vez.
+ * 
+ * IMPORTANTE: Úsalo SOLO en Server Components o Server Actions
+ * Para Client Components, usa useAuth() hook
+ * 
+ * @example Server Component
+ * const { user, profile, role } = await getSession()
+ */
+export const getSession = cache(async () => {
   const supabase = await createSupabaseServerClient()
 
   const {
@@ -22,5 +36,5 @@ export async function getSession() {
     profile,
     role: profile?.role ?? "user",
   }
-}
+})
 
