@@ -39,7 +39,15 @@ export default function ExamResultsPage() {
     const resultsParam = searchParams.get("results")
     if (resultsParam) {
       console.log("[ExamResults] Loading from URL params")
-      setResults(JSON.parse(decodeURIComponent(resultsParam)))
+      const parsedResults = JSON.parse(decodeURIComponent(resultsParam))
+      setResults(parsedResults)
+      
+      // Verificar si ya se guardó esta sesión de examen
+      const alreadySaved = sessionStorage.getItem("examHistorySaved")
+      if (alreadySaved) {
+        console.log("[ExamResults] This exam was already saved")
+        setSaved(true)
+      }
     } else {
       const stored = sessionStorage.getItem("examResults")
       console.log("[ExamResults] Stored results:", stored)
@@ -47,6 +55,13 @@ export default function ExamResultsPage() {
         const parsedResults = JSON.parse(stored)
         console.log("[ExamResults] Parsed results:", parsedResults)
         setResults(parsedResults)
+        
+        // Verificar si ya se guardó esta sesión de examen
+        const alreadySaved = sessionStorage.getItem("examHistorySaved")
+        if (alreadySaved) {
+          console.log("[ExamResults] This exam was already saved")
+          setSaved(true)
+        }
       } else {
         console.log("[ExamResults] No results found, redirecting")
         router.push("/protected/exam/setup")
@@ -78,6 +93,8 @@ export default function ExamResultsPage() {
       })
         .then(() => {
           console.log("[ExamResults] Exam history saved successfully")
+          // Marcar como guardado en sessionStorage para evitar duplicados
+          sessionStorage.setItem("examHistorySaved", "true")
           setSaved(true)
         })
         .catch((error) => {

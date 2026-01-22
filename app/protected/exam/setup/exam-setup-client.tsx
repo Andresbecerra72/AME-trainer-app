@@ -72,6 +72,12 @@ export function ExamSetupClient({ topics }: ExamSetupClientProps) {
       return
     }
 
+    // Limpiar datos de examen anterior antes de iniciar uno nuevo
+    sessionStorage.removeItem("examResults")
+    sessionStorage.removeItem("examReview")
+    sessionStorage.removeItem("examHistorySaved")
+    console.log("[ExamSetup] Cleared previous exam data from sessionStorage")
+
     // Obtener todos los topic IDs de la categoría seleccionada
     const selectedCategoryData = categoriesForRating.find((cat) => cat.code === selectedCategory)
     if (!selectedCategoryData) return
