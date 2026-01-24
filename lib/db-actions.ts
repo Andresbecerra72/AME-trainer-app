@@ -78,7 +78,7 @@ export async function getQuestion(questionId: string): Promise<QuestionWithDetai
     .select(`
       *,
       topic:topics(*),
-      author:profiles(*)
+      author:profiles!questions_author_id_fkey(*)
     `)
     .eq("id", questionId)
     .single()
