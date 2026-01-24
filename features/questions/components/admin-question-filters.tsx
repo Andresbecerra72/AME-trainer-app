@@ -13,19 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X, Filter, Search } from "lucide-react";
 import { useState, useTransition, useEffect } from "react";
+import { AdminQuestionFiltersProps } from "@/lib/types/questions";
 
 const DIFFICULTIES = ["easy", "medium", "hard"];
-const STATUSES = ["pending", "approved", "rejected"];
-
-interface Topic {
-  id: string;
-  name: string;
-  code: string;
-}
-
-interface AdminQuestionFiltersProps {
-  topics: Topic[];
-}
+const STATUSES = ["all", "pending", "approved", "rejected"];
 
 export function AdminQuestionFilters({ topics }: AdminQuestionFiltersProps) {
   const router = useRouter();
@@ -57,7 +48,7 @@ export function AdminQuestionFilters({ topics }: AdminQuestionFiltersProps) {
   const clearAllFilters = () => {
     setSearchValue("");
     startTransition(() => {
-      router.push("/admin/questions", { scroll: false });
+      router.push("/admin/questions?status=all", { scroll: false });
     });
   };
 
@@ -91,14 +82,6 @@ export function AdminQuestionFilters({ topics }: AdminQuestionFiltersProps) {
 
       {/* Status Quick Filters - Always visible */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        <Button 
-          variant={!searchParams.get("status") ? "default" : "outline"} 
-          size="sm" 
-          onClick={() => updateFilter("status", null)}
-          disabled={isPending}
-        >
-          All
-        </Button>
         {STATUSES.map((status) => (
           <Button 
             key={status}

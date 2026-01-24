@@ -93,3 +93,13 @@ export function decodeCursor(cursor: string): CursorData | null {
     return null;
   }
 }
+
+export interface Topic {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface AdminQuestionFiltersProps {
+  topics: Topic[];
+}

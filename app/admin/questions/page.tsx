@@ -27,7 +27,7 @@ export default async function AdminQuestionsPage() {
         {/* Filters */}
         <AdminQuestionFilters topics={topics} />
         {/* Questions List & Stats */}
-        <AdminQuestionList/>
+        <AdminQuestionList topics={topics} />
       </div>
 
       <BottomNav userRole={role} />

@@ -17,12 +17,14 @@ import {
   decodeCursor,
   encodeCursor,
 } from "@/lib/types/questions";
+import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic"; // Disable static optimization for this route
-export const revalidate = 60; // Revalidate cache every 60 seconds
+export const revalidate = 0; // Disable automatic revalidation
+export const fetchCache = "force-no-store"; // Always fetch fresh data
 
 export async function GET(request: NextRequest) {
-    console.log("API /questions called");
+  
   try {
     const supabase = await createSupabaseServerClient();
     const searchParams = request.nextUrl.searchParams;
@@ -100,7 +102,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (params.status) {
-      query = query.eq("status", params.status);
+      query = params.status == "all"? query.in("status", ["approved", "pending", "rejected", "flagged"]) : query.eq("status", params.status);
     }
 
     if (params.createdBy) {
@@ -148,7 +150,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response, {
       headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
       },
     });
   } catch (error) {

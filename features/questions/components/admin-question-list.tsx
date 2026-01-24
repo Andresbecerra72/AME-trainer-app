@@ -6,27 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, Info, User, RefreshCw, Loader2 } from "lucide-react";   
 import { EditButtonClient } from "./edit-button-client";
 import { DeleteButtonClient } from "./delete-button-client";
+import { StatusUpdateButton } from "./status-update-button";
 import { useSearchParams } from "next/navigation";
 import { questionKeys, useInfiniteQuestions, usePrefetchNextPage, useTotalQuestionCount } from "../hooks/use-questions";
 import { useEffect, useRef } from "react";
-import { QuestionFilters as FilterType } from "@/lib/types/questions";
+import { AdminQuestionFiltersProps, QuestionFilters as FilterType } from "@/lib/types/questions";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { updateQuestionStatusAction } from "../services/question.server";
-import { useQueryClient } from "@tanstack/react-query";
 
-async function updateStatus(formData: FormData) {
-  const queryClient = useQueryClient();
-  const questionId = formData.get("questionId") as string
-  const status = formData.get("status") as "approved" | "rejected" | "pending"
-  await updateQuestionStatusAction(questionId, status)
-  queryClient.invalidateQueries({ queryKey: questionKeys.lists() });
-}
-
-export function AdminQuestionList() {
+export function AdminQuestionList({ topics }: AdminQuestionFiltersProps) {
 const searchParams = useSearchParams();
-console.log("Search Params:", searchParams.toString());
-
-const topics: any[] = [] // Replace with actual topics data
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -317,37 +305,14 @@ const topics: any[] = [] // Replace with actual topics data
                           topics={topics}
                         />
 
-                        {question.status !== "approved" && (
-                          <form action={updateStatus} className="flex-1">
-                            <input type="hidden" name="questionId" value={question.id} />
-                            <input type="hidden" name="status" value="approved" />
-                            <Button 
-                              type="submit" 
-                              size="sm" 
-                              className="w-full bg-green-600 hover:bg-green-700 h-8 text-xs"
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Approve
-                            </Button>
-                          </form>
-                        )}
-
-                        {question.status !== "rejected" && (
-                          <form action={updateStatus} className="flex-1">
-                            <input type="hidden" name="questionId" value={question.id} />
-                            <input type="hidden" name="status" value="rejected" />
-                            <Button 
-                              type="submit" 
-                              size="sm" 
-                              variant="destructive"
-                              className="w-full h-8 text-xs"
-                            >
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Reject
-                            </Button>
-                          </form>
-                        )}
-
+                        <div className="flex-1">
+                          <StatusUpdateButton
+                            questionId={question.id}
+                            status={question.status === "approved" ? "rejected" : "approved"}
+                            currentStatus={question.status}
+                            variant={question.status === "approved" ? "reject" : "approve"}
+                          />
+                        </div>
                         <DeleteButtonClient questionId={question.id} />
                       </div>
                     </div>
