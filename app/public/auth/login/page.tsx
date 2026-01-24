@@ -10,6 +10,10 @@ import { AuthForm } from "@/features/auth/client"
 export default function LoginPage() {
   const [tab, setTab] = useState("login")
 
+  const handleOnloginFailed = (tab: string) => {
+    setTab(tab);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <MobileHeader title="Welcome" showBack={false} />
@@ -36,12 +40,12 @@ export default function LoginPage() {
 
             {/* LOGIN FORM */}
             <TabsContent value="login">
-              <AuthForm type="login" />
+              <AuthForm type="login" onLoginFailed={handleOnloginFailed} />
             </TabsContent>
 
             {/* REGISTER FORM */}
             <TabsContent value="register">
-              <AuthForm type="register" />
+              <AuthForm type="register" onLoginFailed={handleOnloginFailed} />
             </TabsContent>
           </Tabs>
         </Card>
