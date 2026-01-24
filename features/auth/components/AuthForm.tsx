@@ -23,10 +23,15 @@ const initialFormState: FormState = {
   confirmPassword: "",
 }
 
-export function AuthForm({ type }: { type: "login" | "register" }) {
+interface AuthFormProps {
+  type: "login" | "register"
+  onLoginFailed?: (tab: string) => void
+}
+
+export function AuthForm({ type, onLoginFailed }: AuthFormProps) {
   const router = useRouter()
   const refreshProfile = useRefreshProfile()
-  const isLogin = type === "login"
+  const [isLogin, setIsLogin] = useState(type === "login")
 
   const [form, setForm] = useState<FormState>(initialFormState)
   const [error, setError] = useState("")
@@ -43,7 +48,10 @@ export function AuthForm({ type }: { type: "login" | "register" }) {
     loginSchema.parse(form)
 
     const { error } = await loginUser(form.email, form.password)
-    if (error) throw error
+    if (error) {
+      setIsLogin(false)
+      onLoginFailed && onLoginFailed("register")
+    }
 
     // El AuthProvider detectará el cambio automáticamente
     router.replace("/protected/dashboard")
@@ -71,8 +79,8 @@ export function AuthForm({ type }: { type: "login" | "register" }) {
 
     // Limpiar formulario
     setForm(initialFormState)
+    onLoginFailed && onLoginFailed("login")
     
-    router.replace("/public/auth/login")
   }, [form, router])
 
   const handleSubmit = useCallback(
