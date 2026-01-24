@@ -1,6 +1,7 @@
 "use server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
 export async function getQuestionsByTopicServer(topicId: string) {
   const supabase = await createSupabaseServerClient();
@@ -167,6 +168,10 @@ export async function deleteQuestionAction(questionId: string) {
     throw new Error(error.message);
   }
 
+  // Invalidate Next.js cache
+  revalidatePath("/admin/questions");
+  revalidatePath("/api/questions");
+
   return { success: true };
 }
 
@@ -196,6 +201,10 @@ export async function updateQuestionStatusAction(questionId: string, status: "ap
     console.error("Error updating question status:", error);
     throw new Error(error.message);
   }
+
+  // Invalidate Next.js cache
+  revalidatePath("/admin/questions");
+  revalidatePath("/api/questions");
 
   return { success: true };
 }
@@ -246,6 +255,10 @@ export async function updateQuestionAction(questionId: string, data: {
     console.error("Error updating question:", error);
     throw new Error(error.message);
   }
+
+  // Invalidate Next.js cache
+  revalidatePath("/admin/questions");
+  revalidatePath("/api/questions");
 
   return { success: true };
 }

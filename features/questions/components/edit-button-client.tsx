@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Pencil } from "lucide-react"
 import { EditQuestionDialog } from "./edit-question-dialog"
 import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
+import { questionKeys } from "../hooks/use-questions"
 
 type Question = {
   id: string
@@ -27,8 +29,11 @@ type EditButtonClientProps = {
 export function EditButtonClient({ question, topics }: EditButtonClientProps) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const handleSuccess = () => {
+    // Invalidate all question queries to refresh the list
+    queryClient.invalidateQueries({ queryKey: questionKeys.lists() })
     router.refresh()
   }
 

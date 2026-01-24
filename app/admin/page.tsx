@@ -152,7 +152,7 @@ const { user, role } = await getSession()
             <h3 className="font-semibold text-base">Content Management</h3>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
-            <Link href="/admin/questions">
+            <Link href="/admin/questions?status=all">
               <Card className="hover:shadow-md transition-shadow cursor-pointer group">
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">

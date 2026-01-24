@@ -7,6 +7,8 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { deleteQuestionAction } from "@/features/questions/services/question.server"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { useQueryClient } from "@tanstack/react-query"
+import { questionKeys } from "../hooks/use-questions"
 
 type DeleteButtonClientProps = {
   questionId: string
@@ -17,11 +19,15 @@ export function DeleteButtonClient({ questionId }: DeleteButtonClientProps) {
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
   const { toast } = useToast()
+  const queryClient = useQueryClient()
 
   const handleDelete = async () => {
     startTransition(async () => {
       try {
         await deleteQuestionAction(questionId)
+        
+        // Invalidate all question queries to refresh the list
+        queryClient.invalidateQueries({ queryKey: questionKeys.lists() })
         
         toast({
           title: "Success",

@@ -3,6 +3,7 @@ import { NetworkStatusBanner } from "@/components/network-status-banner"
 import { PushNotificationPrompt } from "@/components/push-notification-prompt"
 import { Toaster } from "@/components/ui/toaster"
 import { UserProvider } from "@/features/auth/client"
+import { QueryProvider } from "@/lib/providers/query-provider"
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
@@ -91,11 +92,13 @@ export default function RootLayout({
       >
         <RegisterServiceWorker />
         <NetworkStatusBanner />
-        <UserProvider>
-          {children}
-          <InstallPrompt />
-          <PushNotificationPrompt />
-        </UserProvider>
+        <QueryProvider>
+          <UserProvider>
+            {children}
+            <InstallPrompt />
+            <PushNotificationPrompt />
+          </UserProvider>
+        </QueryProvider>
         <Toaster />
         <Analytics />
       </body>

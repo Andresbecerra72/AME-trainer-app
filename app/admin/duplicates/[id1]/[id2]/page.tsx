@@ -14,8 +14,8 @@ async function handleMerge(sourceId: string, targetId: string) {
   redirect("/admin/duplicates")
 }
 
-export default async function MergeDuplicatesPage({ params }: { params: { id1: string; id2: string } }) {
- const { user, role } = await getSession()
+export default async function MergeDuplicatesPage({ params }: { params: Promise<{ id1: string; id2: string }> }) {
+  const { user, role } = await getSession()
     
   if (!user) {
     redirect("/public/auth/login")
@@ -25,7 +25,9 @@ export default async function MergeDuplicatesPage({ params }: { params: { id1: s
     redirect("/protected/dashboard")
   }
 
-  const [question1, question2] = await Promise.all([getQuestion(params.id1), getQuestion(params.id2)])
+  // Unwrap params Promise (Next.js 15+)
+  const resolvedParams = await params
+  const [question1, question2] = await Promise.all([getQuestion(resolvedParams.id1), getQuestion(resolvedParams.id2)])
 
   if (!question1 || !question2) {
     redirect("/admin/duplicates")
@@ -47,7 +49,7 @@ export default async function MergeDuplicatesPage({ params }: { params: { id1: s
           <Card className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <Badge>Question 1</Badge>
-              <form action={handleMerge.bind(null, params.id2, params.id1)}>
+              <form action={handleMerge.bind(null, resolvedParams.id2, resolvedParams.id1)}>
                 <Button size="sm" type="submit">
                   Keep This
                 </Button>
@@ -56,7 +58,7 @@ export default async function MergeDuplicatesPage({ params }: { params: { id1: s
             <div>
               <p className="font-medium mb-2">{question1.question_text}</p>
               <div className="space-y-1 text-sm">
-                <p className="text-muted-foreground">Author: {question1.author?.display_name}</p>
+                <p className="text-muted-foreground">Author: {question1.author?.full_name}</p>
                 <p className="text-muted-foreground">Upvotes: {question1.upvotes}</p>
                 <p className="text-muted-foreground">Comments: {question1.comment_count}</p>
                 <p className="text-muted-foreground">Difficulty: {question1.difficulty}</p>
@@ -67,14 +69,18 @@ export default async function MergeDuplicatesPage({ params }: { params: { id1: s
                   question1.option_b,
                   question1.option_c,
                   question1.option_d,
-                ].map((opt, idx) => (
-                  <div
-                    key={idx}
-                    className={`text-sm p-2 rounded ${opt === question1.correct_answer ? "bg-green-500/10" : "bg-muted/50"}`}
-                  >
-                    {String.fromCharCode(65 + idx)}. {opt}
-                  </div>
-                ))}
+                ].map((opt, idx) => {
+                  const optionLetter = String.fromCharCode(65 + idx)
+                  const isCorrect = optionLetter === question1.correct_answer
+                  return (
+                    <div
+                      key={idx}
+                      className={`text-sm p-2 rounded ${isCorrect ? "bg-green-500/10 border border-green-500/50" : "bg-muted/50"}`}
+                    >
+                      {optionLetter}. {opt}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </Card>
@@ -82,7 +88,7 @@ export default async function MergeDuplicatesPage({ params }: { params: { id1: s
           <Card className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <Badge>Question 2</Badge>
-              <form action={handleMerge.bind(null, params.id1, params.id2)}>
+              <form action={handleMerge.bind(null, resolvedParams.id1, resolvedParams.id2)}>
                 <Button size="sm" type="submit">
                   Keep This
                 </Button>
@@ -91,7 +97,7 @@ export default async function MergeDuplicatesPage({ params }: { params: { id1: s
             <div>
               <p className="font-medium mb-2">{question2.question_text}</p>
               <div className="space-y-1 text-sm">
-                <p className="text-muted-foreground">Author: {question2.author?.display_name}</p>
+                <p className="text-muted-foreground">Author: {question2.author?.full_name}</p>
                 <p className="text-muted-foreground">Upvotes: {question2.upvotes}</p>
                 <p className="text-muted-foreground">Comments: {question2.comment_count}</p>
                 <p className="text-muted-foreground">Difficulty: {question2.difficulty}</p>
@@ -102,14 +108,18 @@ export default async function MergeDuplicatesPage({ params }: { params: { id1: s
                   question2.option_b,
                   question2.option_c,
                   question2.option_d,
-                ].map((opt, idx) => (
-                  <div
-                    key={idx}
-                    className={`text-sm p-2 rounded ${opt === question2.correct_answer ? "bg-green-500/10" : "bg-muted/50"}`}
-                  >
-                    {String.fromCharCode(65 + idx)}. {opt}
-                  </div>
-                ))}
+                ].map((opt, idx) => {
+                  const optionLetter = String.fromCharCode(65 + idx)
+                  const isCorrect = optionLetter === question2.correct_answer
+                  return (
+                    <div
+                      key={idx}
+                      className={`text-sm p-2 rounded ${isCorrect ? "bg-green-500/10 border border-green-500/50" : "bg-muted/50"}`}
+                    >
+                      {optionLetter}. {opt}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </Card>
