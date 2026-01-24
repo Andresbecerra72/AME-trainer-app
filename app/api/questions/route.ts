@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
         comments_count,
         created_at,
         updated_at,
+        author:profiles!questions_author_id_fkey(id, full_name, avatar_url),
         topic:topics(id, name, code)
       `,
         { count: "exact" }

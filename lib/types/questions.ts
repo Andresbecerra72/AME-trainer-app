@@ -21,8 +21,12 @@ export interface Question {
   comments_count: number;
   created_at: string;
   updated_at: string;
-  
   // Relations (optional, loaded when needed)
+  author?: {
+    id: string;
+    full_name: string;
+    avatar_url?: string;
+  };  
   topic?: {
     id: string;
     name: string;
