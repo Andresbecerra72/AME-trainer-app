@@ -7,13 +7,13 @@ interface QuestionPreviewCardProps {
     id: string
     question_text: string
     author?: {
-      display_name?: string | null
+      full_name?: string | null
     } | null
     topic?: {
       code: string
     } | null
     upvotes?: number
-    comment_count?: number
+    comments_count?: number
   }
   showAuthor?: boolean
 }
@@ -43,7 +43,7 @@ export function QuestionPreviewCard({ question, showAuthor = true }: QuestionPre
             <div className="flex items-center gap-1.5">
               <User className="w-3.5 h-3.5" />
               <span className="truncate max-w-[120px]">
-                {question.author?.display_name || "Anonymous"}
+                {question.author?.full_name || "Anonymous"}
               </span>
             </div>
           )}
@@ -54,7 +54,7 @@ export function QuestionPreviewCard({ question, showAuthor = true }: QuestionPre
             </div>
             <div className="flex items-center gap-1">
               <MessageSquare className="w-3.5 h-3.5" />
-              <span>{question.comment_count || 0}</span>
+              <span>{question.comments_count || 0}</span>
             </div>
           </div>
         </div>

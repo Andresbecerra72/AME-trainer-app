@@ -90,7 +90,7 @@ export function ExamTakeClient({ exam, questions, userId }: ExamTakeClientProps)
     const score = Math.round((correctCount / questions.length) * 100)
 
     // Save attempt
-    const result = await createExamAttempt(exam.id, userId, score, answers)
+    const result = await createExamAttempt(exam.id, userId, score, answers, questions)
 
     if (result.success) {
       // Store results in sessionStorage for results page
@@ -135,7 +135,7 @@ export function ExamTakeClient({ exam, questions, userId }: ExamTakeClientProps)
             </div>
           )}
         </div>
-        <ProgressBar progress={progress} />
+        <ProgressBar value={progress} showPercentage={false} />
       </div>
 
       <main className="container max-w-2xl mx-auto px-4 py-6">

@@ -2,7 +2,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { notFound, redirect } from "next/navigation"
 import { ExamTakeClient } from "./exam-take-client"
 
-export default async function TakeExamPage({ params }: { params: { id: string } }) {
+export default async function TakeExamPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -12,22 +13,19 @@ export default async function TakeExamPage({ params }: { params: { id: string } 
     redirect("/public/auth/login")
   }
 
-  // Fetch exam with topics
+  // Fetch exam
   const { data: exam } = await supabase
     .from("community_exams")
-    .select(`
-      *,
-      topics:community_exam_topics(topic_id)
-    `)
-    .eq("id", params.id)
+    .select("*")
+    .eq("id", id)
     .single()
 
   if (!exam) {
     notFound()
   }
 
-  // Fetch questions based on exam configuration
-  const topicIds = exam.topics.map((t: any) => t.topic_id)
+  // Get topic IDs from the exam's topic_ids array
+  const topicIds = exam.topic_ids || []
 
   let query = supabase
     .from("questions")

@@ -922,18 +922,36 @@ export async function createExamAttempt(
   userId: string,
   score: number,
   answers: Record<number, string>,
+  questions?: any[],
 ) {
   const supabase = await createSupabaseServerClient()
 
   try {
-    // Insert exam attempt
+    // Calculate correct and incorrect answers
+    let correctAnswers = 0
+    let incorrectAnswers = 0
+    
+    if (questions) {
+      questions.forEach((q, idx) => {
+        if (answers[idx] === q.correct_answer) {
+          correctAnswers++
+        } else if (answers[idx]) {
+          incorrectAnswers++
+        }
+      })
+    }
+
+    // Insert exam attempt into exam_history with community_exam_id
     const { data: attempt, error: attemptError } = await supabase
-      .from("community_exam_attempts")
+      .from("exam_history")
       .insert({
-        exam_id: examId,
+        community_exam_id: examId,
         user_id: userId,
-        score,
-        answers,
+        topic_ids: [], // Will be populated from exam topics if needed
+        question_count: questions?.length || Object.keys(answers).length,
+        correct_answers: correctAnswers,
+        incorrect_answers: incorrectAnswers,
+        score_percentage: score,
         completed_at: new Date().toISOString(),
       })
       .select()
