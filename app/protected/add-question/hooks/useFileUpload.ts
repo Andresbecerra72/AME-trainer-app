@@ -11,7 +11,17 @@ import { User } from "@/lib/types"
 export function useFileUpload(user: User | undefined) {
   const router = useRouter()
   const { toast } = useToast()
-  const { job, isUploading, isExtracting, extractionProgress, error, startUpload, resumeJob, deleteJob } = useQuestionImportJob()
+  const { 
+    job, 
+    isUploading, 
+    isExtracting, 
+    extractionProgress, 
+    error, 
+    progressDetails,
+    startUpload, 
+    resumeJob, 
+    deleteJob 
+  } = useQuestionImportJob()
   const { pendingJobs, isLoading: isPendingJobsLoading, refresh: refreshPendingJobs } = usePendingJobs()
 
   const handleFileUpload = async (file: File) => {
@@ -105,6 +115,7 @@ export function useFileUpload(user: User | undefined) {
     isExtracting,
     extractionProgress,
     error,
+    progressDetails,
     pendingJobs,
     isPendingJobsLoading,
     handleFileUpload,

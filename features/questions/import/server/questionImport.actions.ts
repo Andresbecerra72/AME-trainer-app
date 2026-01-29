@@ -93,8 +93,17 @@ export async function processImportJob(jobId: string) {
   const EDGE_FUNCTION_URL = process.env.NEXT_PUBLIC_SUPABASE_URL 
     ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/parse-import-job`
     : "http://127.0.0.1:54321/functions/v1/parse-import-job"
+    
+  const EDGE_FUNCTION_URL_BATCH = process.env.NEXT_PUBLIC_SUPABASE_URL 
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/process-import-job-batch`
+    : "http://127.0.0.1:54321/functions/v1/process-import-job-batch"
+
+  const MAX_ATTEMPTS = 100 // Límite de intentos para evitar loops infinitos
+  const MAX_DURATION_MS = 50_000 // Máximo 50 segundos de procesamiento sincrónico
+  const POLL_INTERVAL_MS = 500 // Intervalo entre consultas
 
   try {
+     // 1) Encolar el job (Edge Function parse-import-job)
     const response = await fetch(EDGE_FUNCTION_URL, {
       method: "POST",
       headers: {
@@ -109,16 +118,98 @@ export async function processImportJob(jobId: string) {
       throw new Error(error.error || `HTTP ${response.status}`)
     }
 
-    const result = await response.json()
-    console.log("EDGE Function - Import job processed:", result)
-    return { status: "ready", detected: result.detected || 0 }
+    const queueResult = await response.json()
+    console.log("Job enqueued:", queueResult)
+
+    // 2) Procesar batches con límites de tiempo y reintentos
+    const startTime = Date.now()
+    let attempts = 0
+    let done = false
+
+    while (!done && attempts < MAX_ATTEMPTS) {
+      // Verificar timeout global
+      if (Date.now() - startTime > MAX_DURATION_MS) {
+        console.log(`Reached time limit for job ${jobId}, continuing in background`)
+        return { 
+          status: "processing", 
+          message: "Job is processing in background. Check status later.",
+          background: true 
+        }
+      }
+
+      attempts++
+
+      try {
+        const res = await fetch(EDGE_FUNCTION_URL_BATCH, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json", 
+            "Authorization": `Bearer ${session.access_token}` 
+          },
+          body: JSON.stringify({ jobId }),
+        })
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ error: "Unknown error" }))
+          console.error(`Batch processing error (attempt ${attempts}):`, errData)
+          
+          // Si es error de servidor (5xx), esperar más tiempo
+          if (res.status >= 500) {
+            await new Promise(r => setTimeout(r, POLL_INTERVAL_MS * 2))
+            continue
+          }
+          
+          throw new Error(errData.error || `HTTP ${res.status}`)
+        }
+
+        const data = await res.json()
+        console.log(`Batch result (attempt ${attempts}):`, {
+          done: data.done,
+          status: data.status,
+          processedPages: data.processedPages,
+          totalQuestions: data.totalQuestionsSoFar
+        })
+
+        done = !!data.done
+        
+        // Si el job falló, lanzar error
+        if (data.status === "failed") {
+          throw new Error(data.error || "Job processing failed")
+        }
+
+        // Si no está terminado, esperar antes del siguiente intento
+        if (!done) {
+          await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
+        }
+      } catch (fetchError: any) {
+        console.error(`Fetch error in batch ${attempts}:`, fetchError)
+        
+        // Si es timeout de red, continuar intentando
+        if (fetchError.name === 'AbortError' || fetchError.message.includes('timeout')) {
+          await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
+          continue
+        }
+        
+        throw fetchError
+      }
+    }
+
+    if (attempts >= MAX_ATTEMPTS && !done) {
+      console.warn(`Max attempts reached for job ${jobId}, job may still be processing`)
+      return { 
+        status: "processing", 
+        message: "Maximum attempts reached. Job continues in background.",
+        background: true 
+      }
+    }
+
+    // Job completado
+    return { status: "ready", message: "Job completed successfully" }
   } catch (e: any) {
-    // Don't mark as failed if it's a timeout error (504, 503)
-    // The Edge Function might still be processing and will update the status when done
-    const isTimeout = e?.message?.includes('504') || e?.message?.includes('503')
+    const isTimeout = e?.message?.includes('504') || e?.message?.includes('503') || e?.message?.includes('546')
     
     if (!isTimeout) {
-      // Only mark as failed for actual errors (not timeouts)
+      // Marcar como fallido solo si no es timeout
       await supabase
         .from("question_imports")
         .update({
@@ -128,7 +219,13 @@ export async function processImportJob(jobId: string) {
         })
         .eq("id", jobId)
     } else {
-      console.log(`Timeout received for job ${jobId}, but processing continues in background`)
+      console.log(`Timeout received for job ${jobId}, processing continues in background`)
+      // No lanzar error en timeout, retornar estado de procesamiento
+      return { 
+        status: "processing", 
+        message: "Job is processing in background due to timeout",
+        background: true 
+      }
     }
 
     throw e
@@ -178,6 +275,56 @@ export async function getImportJob(jobId: string): Promise<QuestionImportJob> {
 
   if (error) throw new Error(error.message)
   return data as QuestionImportJob
+}
+
+/**
+ * Poll job status for client-side monitoring
+ * Returns current status, progress, and extracted questions count
+ */
+export async function pollImportJobStatus(jobId: string): Promise<{
+  status: string
+  progress?: { current: number; total: number; percentage: number }
+  questionsExtracted?: number
+  error?: string
+  done: boolean
+  warnings?: Array<{ page: number; type: string; message: string }>
+  failedPages?: number[]
+  successfulPages?: number[]
+}> {
+  const supabase = await createSupabaseServerClient()
+  
+  const { data: job, error } = await supabase
+    .from("question_imports")
+    .select("status, next_page, total_pages, completed_pages, result, error, stats")
+    .eq("id", jobId)
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  const totalPages = job.total_pages || 1
+  const completedPages = job.completed_pages || 0
+  const questionsExtracted = Array.isArray(job.result) ? job.result.length : 0
+  
+  // Extract warnings from stats
+  const stats = (job.stats as any) || {}
+  const warnings = Array.isArray(stats.warnings) ? stats.warnings : []
+  const failedPages = Array.isArray(stats.failed_pages) ? stats.failed_pages : []
+  const successfulPages = Array.isArray(stats.successful_pages) ? stats.successful_pages : []
+
+  return {
+    status: job.status,
+    progress: {
+      current: completedPages,
+      total: totalPages,
+      percentage: Math.round((completedPages / totalPages) * 100)
+    },
+    questionsExtracted,
+    error: job.error,
+    done: job.status === "ready" || job.status === "failed",
+    warnings,
+    failedPages,
+    successfulPages,
+  }
 }
 
 export async function uploadImportFile(input: {
@@ -248,7 +395,10 @@ export async function uploadTextExtract(input: {
     const path = `${input.userId}/${job.id}/${input.file.name}`
     const { error: uploadError } = await supabase.storage
       .from('question-imports')
-      .upload(path, buffer, { upsert: true })
+      .upload(path, buffer, { 
+        upsert: true,
+        contentType: input.file.type || 'application/pdf'
+      })
     
     if (uploadError) {
       console.warn("Failed to upload file to storage (non-critical):", uploadError)
@@ -295,13 +445,18 @@ export async function uploadTextExtract(input: {
     console.log(`Job ${job.id} created with text${hasPages ? ' and pages' : ''}, triggering parser...`)
     
     // 5. Trigger Edge Function to parse the extracted text (fire and forget)
-    // Don't await - let it process in background to avoid HTTP 504 timeout
-    // The client polling will pick up the result when ready
-    processImportJob(job.id).catch(err => {
-      console.error(`Background processing failed for job ${job.id}:`, err)
-      // Timeout errors (504) are expected and job will be updated by Edge Function
-      // Other errors will be visible in job status via polling
-    })
+    // No esperamos la respuesta para evitar timeouts en archivos grandes
+    // El cliente debe hacer polling del estado del job
+    processImportJob(job.id)
+      .then(result => {
+        console.log(`Job ${job.id} processing completed:`, result)
+      })
+      .catch(err => {
+        // Solo logueamos errores graves (no timeouts)
+        if (!err?.message?.includes('504') && !err?.message?.includes('503') && !err?.message?.includes('546')) {
+          console.error(`Background processing failed for job ${job.id}:`, err)
+        }
+      })
     
     return updatedJob as QuestionImportJob
   } catch (error: any) {

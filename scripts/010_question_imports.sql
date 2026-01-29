@@ -86,3 +86,12 @@ CREATE POLICY "Admins can view all imports"
 --   bucket_id = 'question-imports' 
 --   and auth.uid()::text = (storage.foldername(name))[1]
 -- );
+
+-- 4. Agregar columnas adicionales a question_imports
+alter table public.question_imports
+add column if not exists total_pages integer,
+add column if not exists next_page integer default 0,
+add column if not exists completed_pages integer default 0,
+add column if not exists total_tokens_used integer default 0,
+add column if not exists locked_at timestamptz,
+add column if not exists locked_by text;
