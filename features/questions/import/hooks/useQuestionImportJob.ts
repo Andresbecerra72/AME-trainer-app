@@ -156,7 +156,7 @@ export function useQuestionImportJob() {
       const validation = validateExtractedText(extractionResult.text)
       
       if (!validation.isValid) {
-        const errorMsg = `Text validation failed:\n${validation.issues.join('\n')}\n\nSuggestions:\n${validation.suggestions.join('\n')}`
+        const errorMsg = `Unable to extract text from this file. ${validation.issues[0] || 'Please try a different file.'}`
         setError(errorMsg)
         setIsExtracting(false)
         return
@@ -228,6 +228,8 @@ export function useQuestionImportJob() {
       
       if (job?.id === jobId) {
         setJob(null)
+        resetState() // Clear all state when deleting current job
+        setProgressDetails(null)
       }
       
       return true

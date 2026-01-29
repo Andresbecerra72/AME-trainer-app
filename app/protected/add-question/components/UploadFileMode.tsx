@@ -1,13 +1,25 @@
 "use client"
 
+import { useState } from "react"
 import { MobileCard } from "@/components/mobile-card"
 import { PrimaryButton } from "@/components/primary-button"
-import { Upload, FileText, Loader2, Bell } from "lucide-react"
+import { SecondaryButton } from "@/components/secondary-button"
+import { Upload, FileText, Loader2, Bell, XCircle, AlertCircle } from "lucide-react"
 import { FileImportReviewCard, PendingJobsCard, ImportProgressBar, type ImportProgress } from "@/features/questions/import/components"
 import { useImportNotifications } from "@/features/questions/import/hooks/useImportNotifications"
 import { User } from "@/lib/types"
 import { QuestionImportJob, DraftQuestion } from "@/features/questions/import/types"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface UploadFileModeProps {
   user: User | undefined
@@ -29,7 +41,7 @@ interface UploadFileModeProps {
   } | null
   onFileUpload: (file: File) => Promise<void>
   onResumeJob: (job: any) => Promise<void>
-  onDeleteJob: (job: any) => Promise<void>
+  onDeleteJob: (job: any) => Promise<boolean>
   onSubmitFileImport: (payload: {
     topic_id: string
     difficulty: "easy" | "medium" | "hard"
@@ -62,6 +74,15 @@ export function UploadFileMode({
 
   // Build progress object for ImportProgressBar
   const getImportProgress = (): ImportProgress | null => {
+    // Handle validation errors without a job
+    if (!job && error && !isExtracting && !isUploading) {
+      return {
+        status: "failed",
+        error: error,
+        questionsExtracted: 0,
+      }
+    }
+
     if (!job) return null
 
     // Map job status to ImportProgress status
@@ -90,8 +111,36 @@ export function UploadFileMode({
     }
   }
 
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [jobToCancel, setJobToCancel] = useState<QuestionImportJob | null>(null)
+
   const progress = getImportProgress()
-  const showProgress = job && (isUploading || isExtracting || job.status === "processing" || job.status === "ready" || job.status === "failed")
+  // Show progress if there's a job OR if there's extraction/upload activity OR if there's an error
+  const showProgress = (job && (isUploading || isExtracting || job.status === "processing" || job.status === "ready" || job.status === "failed")) || 
+                       (!job && (isUploading || isExtracting || error))
+  // Can upload if: no job, or job failed/completed, or there's an error without a job
+  const canUploadNew = !job || job.status === "failed" || job.status === "completed" || (!job && error && !isExtracting && !isUploading)
+  const hasActiveJob = job && (job.status === "processing" || job.status === "ready")
+
+  const handleCancelJob = () => {
+    if (!job) return
+    setJobToCancel(job)
+    setShowCancelDialog(true)
+  }
+
+  const confirmCancelJob = async () => {
+    if (!jobToCancel) return
+    
+    const success = await onDeleteJob(jobToCancel)
+    // Force re-render by resetting the file input
+    if (success) {
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement
+      if (fileInput) fileInput.value = ''
+    }
+    
+    setShowCancelDialog(false)
+    setJobToCancel(null)
+  }
 
   return (
     <div className="space-y-6">
@@ -115,8 +164,29 @@ export function UploadFileMode({
         />
       )}
 
+      {/* Active Job Warning - Allow Cancel */}
+      {hasActiveJob && (
+        <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertDescription className="flex items-center justify-between gap-4">
+            <div className="flex-1 text-sm text-amber-700 dark:text-amber-300">
+              <strong>File in progress:</strong> {job.file_name || "Untitled"}
+              {job.status === "ready" && " (ready for review)"}
+              {job.status === "processing" && " (extracting questions)"}
+            </div>
+            <SecondaryButton
+              onClick={handleCancelJob}
+              className="flex-shrink-0 gap-2 h-10 text-sm px-4"
+            >
+              <XCircle className="w-4 h-4" />
+              Cancel & Upload New
+            </SecondaryButton>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Upload Area */}
-      {(!job || job.status === "failed") && (
+      {canUploadNew && (
         <>
           {!user?.id && (
             <MobileCard className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800 mb-4">
@@ -161,6 +231,7 @@ export function UploadFileMode({
             </label>
           </MobileCard>
 
+       {!showProgress && (
           <MobileCard className="bg-muted/30 p-6">
             <div className="flex gap-4">
               <FileText className="w-6 h-6 text-primary flex-shrink-0" />
@@ -177,7 +248,8 @@ export function UploadFileMode({
                 </p>
               </div>
             </div>
-          </MobileCard>
+          </MobileCard> 
+       )}
         </>
       )}
 
@@ -195,6 +267,28 @@ export function UploadFileMode({
           isSubmitting={isSubmitting}
         />
       )}
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Import?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel "{jobToCancel?.file_name || "this file"}"? 
+              All extracted data will be lost and cannot be recovered.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Working</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmCancelJob}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, Cancel Import
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -80,17 +80,19 @@ export function ImportProgressBar({ progress, className }: ImportProgressBarProp
   return (
     <div className={cn("space-y-3 rounded-lg border bg-card p-4", className)}>
       {/* Status Header */}
-      <div className="flex items-center justify-between">
+     {status !== "failed" && (
+       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {getStatusIcon()}
           <span className="text-sm font-medium">{getStatusText()}</span>
         </div>
-        {status !== "idle" && status !== "ready" && status !== "failed" && (
+        {status !== "idle" && status !== "ready" && (
           <span className="text-sm font-semibold text-muted-foreground">
             {displayPercentage}%
           </span>
         )}
       </div>
+     )}
 
       {/* Progress Bar */}
       {status !== "idle" && status !== "ready" && status !== "failed" && (
@@ -106,7 +108,8 @@ export function ImportProgressBar({ progress, className }: ImportProgressBarProp
       )}
 
       {/* Details */}
-      {(currentPage || questionsExtracted) && (
+      {!error && status === "processing" && (
+        (currentPage || questionsExtracted) && (
         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
           {currentPage && totalPages && (
             <div className="flex items-center gap-1">
@@ -125,6 +128,7 @@ export function ImportProgressBar({ progress, className }: ImportProgressBarProp
             </div>
           )}
         </div>
+      )
       )}
 
       {/* Warnings */}
@@ -141,11 +145,16 @@ export function ImportProgressBar({ progress, className }: ImportProgressBarProp
 
       {/* Error */}
       {error && status === "failed" && (
-        <div className="flex items-start gap-2 rounded bg-red-50 p-3 text-sm text-red-800">
-          <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="font-medium">Error occurred</p>
-            <p className="mt-1 text-xs">{error}</p>
+        <div className="space-y-2 rounded-lg bg-red-50 dark:bg-red-950/20 p-4 border border-red-200 dark:border-red-800">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+            <div className="flex-1 space-y-2">
+              <p className="font-semibold text-red-900 dark:text-red-100">Import Failed</p>
+              <p className="text-sm text-red-800 dark:text-red-200 whitespace-pre-wrap">{error}</p>
+              <p className="text-xs text-red-700 dark:text-red-300 mt-2">
+                Try uploading a different file or check that your PDF contains readable text.
+              </p>
+            </div>
           </div>
         </div>
       )}

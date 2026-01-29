@@ -59,7 +59,7 @@ export function useFileUpload(user: User | undefined) {
     })
   }
 
-  const handleDeleteJob = async (jobToDelete: any) => {
+  const handleDeleteJob = async (jobToDelete: any): Promise<boolean> => {
     const fileName = jobToDelete.file_name || "Untitled"
     
     const success = await deleteJob(jobToDelete.id)
@@ -77,6 +77,8 @@ export function useFileUpload(user: User | undefined) {
         variant: "destructive",
       })
     }
+    
+    return success
   }
 
   const handleSubmitFileImport = async (payload: {

@@ -98,7 +98,7 @@ export function PendingJobsCard({ jobs, onResumeJob, onDeleteJob, isLoading }: P
                 <SecondaryButton
                   onClick={() => onDeleteJob(job)}
                   className="text-xs h-8 px-3"
-                >{job.status === "ready" ? "Review" : "Monitor"}
+                >{job.status === "ready" ? "Review" : "Delete"}
                   <Trash2 className="w-3.5 h-3.5" />
                 </SecondaryButton>
                 <PrimaryButton
