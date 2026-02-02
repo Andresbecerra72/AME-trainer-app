@@ -5,14 +5,28 @@
  * - tesseract.js: OCR for images (loaded dynamically)
  */
 
+export interface ExtractionProgress {
+  currentPage: number
+  totalPages: number
+  percentage: number
+  method: 'pdf' | 'ocr'
+  message: string
+}
+
+export type ProgressCallback = (progress: ExtractionProgress) => void
+
 /**
  * Extract text from a PDF file
  * Uses pdf.js to parse all pages and extract text content
  * Falls back to OCR if the PDF is image-based
  * @param file - PDF file to extract text from
+ * @param onProgress - Optional callback to report extraction progress
  * @returns Object with fullText (all pages combined) and pages array (individual pages)
  */
-export async function extractPdfText(file: File): Promise<{
+export async function extractPdfText(
+  file: File,
+  onProgress?: ProgressCallback
+): Promise<{
   fullText: string
   pages: string[]
 }> {
@@ -35,25 +49,30 @@ export async function extractPdfText(file: File): Promise<{
     
     console.log(`PDF loaded: ${pdf.numPages} pages`)
     
-    // Extract text from all pages
-    const textPromises: Promise<string>[] = []
+    // Extract text from all pages with progress reporting
+    const pageTexts: string[] = []
     
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      textPromises.push(
-        pdf.getPage(pageNum).then(async (page) => {
-          const textContent = await page.getTextContent()
-          const pageText = textContent.items
-            .map((item: any) => item.str)
-            .join(' ')
-          
-          console.log(`Page ${pageNum}: extracted ${pageText.length} characters`)
-          return pageText
+      // Report progress
+      if (onProgress) {
+        onProgress({
+          currentPage: pageNum,
+          totalPages: pdf.numPages,
+          percentage: Math.round((pageNum / pdf.numPages) * 100),
+          method: 'pdf',
+          message: `Extracting text from page ${pageNum} of ${pdf.numPages}...`
         })
-      )
+      }
+      
+      const page = await pdf.getPage(pageNum)
+      const textContent = await page.getTextContent()
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ')
+      
+      console.log(`Page ${pageNum}: extracted ${pageText.length} characters`)
+      pageTexts.push(pageText)
     }
-    
-    // Wait for all pages to be processed
-    const pageTexts = await Promise.all(textPromises)
     
     // Filter out empty pages
     const nonEmptyPages = pageTexts.filter(text => text.trim().length > 0)
@@ -67,7 +86,7 @@ export async function extractPdfText(file: File): Promise<{
     // Check if PDF is image-based (no text extracted)
     if (fullText.trim().length === 0) {
       console.warn('⚠️ No text extracted - PDF appears to be image-based. Attempting OCR...')
-      return await extractPdfWithOCR(file, pdf)
+      return await extractPdfWithOCR(file, pdf, onProgress)
     }
     
     return {
@@ -84,26 +103,73 @@ export async function extractPdfText(file: File): Promise<{
  * Extract text from image-based PDF using OCR
  * Renders each page as an image and applies Tesseract OCR
  */
-async function extractPdfWithOCR(file: File, pdf: any): Promise<{
+async function extractPdfWithOCR(
+  file: File,
+  pdf: any,
+  onProgress?: ProgressCallback
+): Promise<{
   fullText: string
   pages: string[]
 }> {
   console.log('🔍 Starting OCR extraction for image-based PDF...')
   
   const { createWorker } = await import('tesseract.js')
-  const worker = await createWorker('eng', 1, {
-    logger: (m) => {
-      if (m.status === 'recognizing text') {
-        console.log(`OCR progress: ${Math.round(m.progress * 100)}%`)
-      }
-    },
-  })
+  
+  let worker: Awaited<ReturnType<typeof createWorker>> | null = null
   
   try {
     const pages: string[] = []
     
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      console.log(`📄 Processing page ${pageNum}/${pdf.numPages} with OCR...`)
+      // Report progress at page start
+      if (onProgress) {
+        onProgress({
+          currentPage: pageNum,
+          totalPages: pdf.numPages,
+          percentage: Math.round(((pageNum - 1) / pdf.numPages) * 100),
+          method: 'ocr',
+          message: `Scanning page ${pageNum} of ${pdf.numPages}...`
+        })
+      }
+      
+      //console.log(`📄 Processing page ${pageNum}/${pdf.numPages} with OCR...`)
+      
+      // Track last progress update to throttle
+      let lastProgressUpdate = -1
+      
+      // Terminate previous worker and create new one with updated logger for this page
+      if (worker) await worker.terminate()
+      
+      //console.log(`🔧 Creating OCR worker for page ${pageNum}...`)
+      worker = await createWorker('eng', 1, {
+        logger: (m: any) => {
+          //console.log(`📡 Worker logger called:`, m.status, Math.round((m.progress || 0) * 100) + '%')
+          
+          if (m.status === 'recognizing text' && onProgress) {
+            // Throttle updates to every 10% to avoid too many re-renders
+            const currentProgress = Math.round(m.progress * 100)
+            if (currentProgress % 10 === 0 && currentProgress !== lastProgressUpdate) {
+              lastProgressUpdate = currentProgress
+              
+              //console.log(`✅ Updating progress: page ${pageNum}, ${currentProgress}%`)
+              
+              // Calculate overall progress: (completed pages + current page progress) / total pages
+              const completedPagesProgress = ((pageNum - 1) / pdf.numPages)
+              const currentPageProgress = (m.progress / pdf.numPages)
+              const totalProgress = (completedPagesProgress + currentPageProgress) * 100
+              
+              onProgress({
+                currentPage: pageNum,
+                totalPages: pdf.numPages,
+                percentage: Math.round(totalProgress),
+                method: 'ocr',
+                message: `Scanning page ${pageNum} of ${pdf.numPages}... ${currentProgress}%`
+              })
+            }
+          }
+        }
+      })
+      //console.log(`✅ Worker created for page ${pageNum}`)
       
       // Get page
       const page = await pdf.getPage(pageNum)
@@ -135,17 +201,17 @@ async function extractPdfWithOCR(file: File, pdf: any): Promise<{
       URL.revokeObjectURL(imageUrl)
       
       const pageText = data.text.trim()
-      console.log(`✓ Page ${pageNum}: OCR extracted ${pageText.length} characters (confidence: ${Math.round(data.confidence)}%)`)
+      //console.log(`✓ Page ${pageNum}: OCR extracted ${pageText.length} characters (confidence: ${Math.round(data.confidence)}%)`)
       
       if (pageText.length > 0) {
         pages.push(pageText)
       }
     }
     
-    await worker.terminate()
+    if (worker) await worker.terminate()
     
     const fullText = pages.join('\n\n')
-    console.log(`✓ OCR complete: ${fullText.length} total characters from ${pages.length} pages`)
+    //console.log(`✓ OCR complete: ${fullText.length} total characters from ${pages.length} pages`)
     
     if (fullText.length === 0) {
       throw new Error('No text could be extracted even with OCR. The PDF might be corrupted or contain no readable content.')
@@ -156,7 +222,7 @@ async function extractPdfWithOCR(file: File, pdf: any): Promise<{
       pages
     }
   } catch (error: any) {
-    await worker.terminate()
+    if (worker) await worker.terminate()
     throw new Error(`OCR extraction failed: ${error.message || 'Unknown error'}`)
   }
 }
@@ -165,22 +231,56 @@ async function extractPdfWithOCR(file: File, pdf: any): Promise<{
  * Extract text from an image file using OCR
  * Uses Tesseract.js for optical character recognition
  * @param file - Image file to extract text from
+ * @param onProgress - Optional callback to report extraction progress
  * @returns Extracted text from image
  */
-export async function extractImageText(file: File): Promise<string> {
+export async function extractImageText(
+  file: File,
+  onProgress?: ProgressCallback
+): Promise<string> {
   let worker: Awaited<ReturnType<typeof import('tesseract.js').createWorker>> | null = null
   
   try {
     console.log('Initializing Tesseract OCR worker...')
     
+    // Report initialization
+    if (onProgress) {
+      onProgress({
+        currentPage: 0,
+        totalPages: 1,
+        percentage: 0,
+        method: 'ocr',
+        message: 'Initializing OCR engine...'
+      })
+    }
+    
     // Dynamic import to avoid SSR issues
     const { createWorker } = await import('tesseract.js')
+    
+    // Track last progress update to throttle
+    let lastProgressUpdate = 0
     
     // Create and initialize Tesseract worker
     worker = await createWorker('eng', 1, {
       logger: (m) => {
         if (m.status === 'recognizing text') {
-          console.log(`OCR progress: ${Math.round(m.progress * 100)}%`)
+          const progress = Math.round(m.progress * 100)
+          
+          // Throttle updates to every 5% and always include 100%
+          if (progress - lastProgressUpdate >= 5 || progress === 100) {
+            lastProgressUpdate = progress
+            console.log(`OCR progress: ${progress}%`)
+            
+            if (onProgress) {
+              onProgress({
+                currentPage: 1,
+                totalPages: 1,
+                percentage: progress,
+                method: 'ocr',
+                message: `Scanning image... ${progress}%`
+              })
+            }
+          }
         }
       },
     })
@@ -232,9 +332,13 @@ export async function extractImageText(file: File): Promise<string> {
  * Extract text from any supported file (PDF or image)
  * Automatically detects file type and uses appropriate extraction method
  * @param file - File to extract text from (PDF or image)
+ * @param onProgress - Optional callback to report extraction progress
  * @returns Extracted text and metadata
  */
-export async function extractTextFromFile(file: File): Promise<{
+export async function extractTextFromFile(
+  file: File,
+  onProgress?: ProgressCallback
+): Promise<{
   text: string
   method: 'pdf' | 'ocr'
   pages?: string[]
@@ -253,7 +357,7 @@ export async function extractTextFromFile(file: File): Promise<{
   
   if (isPdf) {
     console.log('Detected PDF file, using pdf.js extraction')
-    const { fullText, pages } = await extractPdfText(file)
+    const { fullText, pages } = await extractPdfText(file, onProgress)
     return {
       text: fullText,
       method: 'pdf',
@@ -261,7 +365,7 @@ export async function extractTextFromFile(file: File): Promise<{
     }
   } else {
     console.log('Detected image file, using Tesseract OCR')
-    const text = await extractImageText(file)
+    const text = await extractImageText(file, onProgress)
     return {
       text,
       method: 'ocr',

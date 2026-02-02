@@ -1,5 +1,16 @@
 export type ImportJobStatus = "pending" | "processing" | "ready" | "failed" | "completed"
 
+export type ImportProgress = {
+  status: "idle" | "extracting" | "uploading" | "processing" | "ready" | "failed"
+  currentPage?: number
+  totalPages?: number
+  questionsExtracted?: number
+  percentage?: number
+  error?: string
+  warnings?: string[]
+  message?: string
+}
+
 export type DraftQuestion = {
   question_text: string
   option_a: string

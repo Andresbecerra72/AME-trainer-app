@@ -212,7 +212,9 @@ async function processPage(
 
 async function processPageByPage(
   apiKey: string,
-  pages: string[]
+  pages: string[],
+  adminClient: any,
+  jobId: string
 ): Promise<{ questions: DraftQuestion[], totalTokens: number }> {
   console.log(`\n🔄 Starting page-by-page processing (${pages.length} pages, batch size: ${BATCH_SIZE})...`)
 
@@ -223,6 +225,10 @@ async function processPageByPage(
 
   const allQuestions: DraftQuestion[] = []
   let totalTokens = 0
+  let completedPages = 0
+  const warnings: Array<{ page: number; type: string; message: string }> = []
+  const failedPages: number[] = []
+  const successfulPages: number[] = []
 
   for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
     const batch = batches[batchIndex]
@@ -235,11 +241,50 @@ async function processPageByPage(
     const results = await Promise.all(batchPromises)
 
     for (const result of results) {
-      allQuestions.push(...result.questions)
+      completedPages++
+      
+      if (result.questions.length > 0) {
+        allQuestions.push(...result.questions)
+        successfulPages.push(result.pageNum)
+      } else {
+        failedPages.push(result.pageNum)
+        warnings.push({
+          page: result.pageNum,
+          type: 'no_questions',
+          message: 'No questions extracted from this page'
+        })
+      }
+      
       totalTokens += result.tokens
     }
 
     console.log(`✓ Batch ${batchIndex + 1} complete: ${allQuestions.length} total questions`)
+    
+    // Update progress in database after each batch
+    const progressPercentage = Math.round((completedPages / pages.length) * 100)
+    await adminClient
+      .from('question_imports')
+      .update({
+        completed_pages: completedPages,
+        total_pages: pages.length,
+        next_page: completedPages + 1,
+        result: allQuestions,
+        stats: {
+          detected: allQuestions.length,
+          parser: 'openai_page_by_page',
+          processing_mode: 'page_by_page',
+          total_pages: pages.length,
+          completed_pages: completedPages,
+          progress_percentage: progressPercentage,
+          total_tokens_used: totalTokens,
+          warnings,
+          failed_pages: failedPages,
+          successful_pages: successfulPages,
+          last_updated: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', jobId)
   }
 
   console.log(`\n✓ Page-by-page complete: ${allQuestions.length} questions, ${totalTokens} tokens`)
@@ -436,7 +481,7 @@ Deno.serve(async (req: Request) => {
 
     try {
       if (usePageByPage) {
-        const result = await processPageByPage(OPENAI_API_KEY, pages)
+        const result = await processPageByPage(OPENAI_API_KEY, pages, adminClient, jobId)
         questions = result.questions
         totalTokens = result.totalTokens
       } else {

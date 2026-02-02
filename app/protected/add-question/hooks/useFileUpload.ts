@@ -11,7 +11,19 @@ import { User } from "@/lib/types"
 export function useFileUpload(user: User | undefined) {
   const router = useRouter()
   const { toast } = useToast()
-  const { job, isUploading, isExtracting, extractionProgress, error, startUpload, resumeJob, deleteJob } = useQuestionImportJob()
+  const { 
+    job, 
+    isUploading, 
+    isExtracting, 
+    extractionProgress, 
+    progressDetails,
+    extractionDetails,
+    startUpload, 
+    resumeJob, 
+    deleteJob,
+    resetStateJob,
+    error, 
+  } = useQuestionImportJob()
   const { pendingJobs, isLoading: isPendingJobsLoading, refresh: refreshPendingJobs } = usePendingJobs()
 
   const handleFileUpload = async (file: File) => {
@@ -49,7 +61,7 @@ export function useFileUpload(user: User | undefined) {
     })
   }
 
-  const handleDeleteJob = async (jobToDelete: any) => {
+  const handleDeleteJob = async (jobToDelete: any): Promise<boolean> => {
     const fileName = jobToDelete.file_name || "Untitled"
     
     const success = await deleteJob(jobToDelete.id)
@@ -67,6 +79,8 @@ export function useFileUpload(user: User | undefined) {
         variant: "destructive",
       })
     }
+    
+    return success
   }
 
   const handleSubmitFileImport = async (payload: {
@@ -99,17 +113,25 @@ export function useFileUpload(user: User | undefined) {
     }
   }
 
+  const handleResetStateJob = () => {
+    refreshPendingJobs()
+    resetStateJob()
+  }
+
   return {
     job,
     isUploading,
     isExtracting,
     extractionProgress,
-    error,
+    progressDetails,
+    extractionDetails,
     pendingJobs,
     isPendingJobsLoading,
     handleFileUpload,
     handleResumeJob,
     handleDeleteJob,
     handleSubmitFileImport,
+    handleResetStateJob,
+    error,
   }
 }

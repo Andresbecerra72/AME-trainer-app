@@ -3,51 +3,6 @@ import { parseQuestionsFromText } from "../parsers/questionText.parser"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { DraftQuestion, QuestionImportJob } from "../types"
 
-// Helper function to extract PDF text
-async function extractPdfText(buffer: Buffer): Promise<string> {
-  return new Promise((resolve, reject) => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { PdfReader } = require('pdfreader')
-      const reader = new PdfReader()
-      
-      // Store items with their position to reconstruct text properly
-      const rows: { [key: number]: string[] } = {}
-      let hasReceivedData = false
-      
-      reader.parseBuffer(buffer, (err: any, item: any) => {
-        if (err) {
-          console.error('PDF parsing error:', err)
-          reject(new Error(`PDF parsing failed: ${err.message || err}`))
-        } else if (!item) {
-          // End of parsing - reconstruct text from rows
-          if (!hasReceivedData) {
-            reject(new Error('No text data extracted from PDF'))
-            return
-          }
-          
-          const lines = Object.keys(rows)
-            .sort((a, b) => parseFloat(a) - parseFloat(b))
-            .map(y => rows[parseFloat(y)].join(''))
-          
-          const text = lines.join('\n').trim()
-          console.log(`Reconstructed ${lines.length} lines of text`)
-          resolve(text)
-        } else if (item.text) {
-          // Group text by Y position (row)
-          hasReceivedData = true
-          const y = item.y || 0
-          if (!rows[y]) rows[y] = []
-          rows[y].push(item.text)
-        }
-      })
-    } catch (error: any) {
-      console.error('Error initializing PDF reader:', error)
-      reject(new Error(`Failed to initialize PDF reader: ${error.message || error}`))
-    }
-  })
-}
-
 export async function createQuestionsBatch(input: {
   topic_id: string
   difficulty: "easy" | "medium" | "hard"
@@ -93,8 +48,11 @@ export async function processImportJob(jobId: string) {
   const EDGE_FUNCTION_URL = process.env.NEXT_PUBLIC_SUPABASE_URL 
     ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/parse-import-job`
     : "http://127.0.0.1:54321/functions/v1/parse-import-job"
+    
+  
 
   try {
+     // 1) Encolar el job (Edge Function parse-import-job)
     const response = await fetch(EDGE_FUNCTION_URL, {
       method: "POST",
       headers: {
@@ -104,21 +62,24 @@ export async function processImportJob(jobId: string) {
       body: JSON.stringify({ jobId }),
     })
 
+    console.log("parse-import-job: ", response )
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: "Unknown error" }))
       throw new Error(error.error || `HTTP ${response.status}`)
     }
 
-    const result = await response.json()
-    console.log("EDGE Function - Import job processed:", result)
-    return { status: "ready", detected: result.detected || 0 }
+    const queueResult = await response.json()
+    console.log("Job enqueued:", queueResult)
+
+   
+    // Job completado
+    return { status: "ready", message: "Job completed successfully" }
   } catch (e: any) {
-    // Don't mark as failed if it's a timeout error (504, 503)
-    // The Edge Function might still be processing and will update the status when done
-    const isTimeout = e?.message?.includes('504') || e?.message?.includes('503')
+    const isTimeout = e?.message?.includes('504') || e?.message?.includes('503') || e?.message?.includes('546')
     
     if (!isTimeout) {
-      // Only mark as failed for actual errors (not timeouts)
+      // Marcar como fallido solo si no es timeout
       await supabase
         .from("question_imports")
         .update({
@@ -128,7 +89,13 @@ export async function processImportJob(jobId: string) {
         })
         .eq("id", jobId)
     } else {
-      console.log(`Timeout received for job ${jobId}, but processing continues in background`)
+      console.log(`Timeout received for job ${jobId}, processing continues in background`)
+      // No lanzar error en timeout, retornar estado de procesamiento
+      return { 
+        status: "processing", 
+        message: "Job is processing in background due to timeout",
+        background: true 
+      }
     }
 
     throw e
@@ -178,6 +145,73 @@ export async function getImportJob(jobId: string): Promise<QuestionImportJob> {
 
   if (error) throw new Error(error.message)
   return data as QuestionImportJob
+}
+
+/**
+ * Poll job status for client-side monitoring
+ * Returns current status, progress, and extracted questions count
+ */
+export async function pollImportJobStatus(jobId: string): Promise<{
+  status: string
+  progress?: { current: number; total: number; percentage: number }
+  questionsExtracted?: number
+  error?: string
+  done: boolean
+  warnings?: Array<{ page: number; type: string; message: string }>
+  failedPages?: number[]
+  successfulPages?: number[]
+}> {
+  const supabase = await createSupabaseServerClient()
+  
+  const { data: job, error } = await supabase
+    .from("question_imports")
+    .select("status, next_page, total_pages, completed_pages, result, error, stats, raw_pages")
+    .eq("id", jobId)
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  // Extract stats for progress tracking
+  const stats = (job.stats as any) || {}
+  
+  // Get total pages from stats first, then raw_pages array, then total_pages column
+  const totalPages = stats.total_pages || 
+                     (job.raw_pages && Array.isArray(job.raw_pages) ? job.raw_pages.length : null) ||
+                     job.total_pages || 
+                     1
+  
+  // Get completed pages from stats first (most up-to-date), then from column
+  const completedPages = stats.completed_pages ?? job.completed_pages ?? 0
+  
+  // Calculate real percentage
+  const percentage = totalPages > 0 
+    ? Math.round((completedPages / totalPages) * 100)
+    : 0
+  
+  // Get questions from result array
+  const questionsExtracted = Array.isArray(job.result) ? job.result.length : 0
+  
+  // Extract warnings from stats
+  const warnings = Array.isArray(stats.warnings) ? stats.warnings : []
+  const failedPages = Array.isArray(stats.failed_pages) ? stats.failed_pages : []
+  const successfulPages = Array.isArray(stats.successful_pages) ? stats.successful_pages : []
+
+  console.log(`[POLL] Job ${jobId}: ${completedPages}/${totalPages} pages (${percentage}%) - ${questionsExtracted} questions`)
+
+  return {
+    status: job.status,
+    progress: {
+      current: completedPages,
+      total: totalPages,
+      percentage
+    },
+    questionsExtracted,
+    error: job.error,
+    done: job.status === "ready" || job.status === "failed",
+    warnings,
+    failedPages,
+    successfulPages,
+  }
 }
 
 export async function uploadImportFile(input: {
@@ -248,7 +282,10 @@ export async function uploadTextExtract(input: {
     const path = `${input.userId}/${job.id}/${input.file.name}`
     const { error: uploadError } = await supabase.storage
       .from('question-imports')
-      .upload(path, buffer, { upsert: true })
+      .upload(path, buffer, { 
+        upsert: true,
+        contentType: input.file.type || 'application/pdf'
+      })
     
     if (uploadError) {
       console.warn("Failed to upload file to storage (non-critical):", uploadError)
@@ -256,13 +293,19 @@ export async function uploadTextExtract(input: {
     }
     
     // 3. Update job with extracted text, pages array, and metadata
+    const totalPages = hasPages ? input.rawPages!.length : 1
     const updatePayload: any = {
       file_path: path,
       raw_text: input.rawText,
+      total_pages: totalPages,
+      completed_pages: 0,
+      next_page: 1,
       stats: {
         extraction_method: input.extractionMethod,
         text_length: input.rawText.length,
-        page_count: hasPages ? input.rawPages!.length : 1,
+        page_count: totalPages,
+        total_pages: totalPages,
+        completed_pages: 0,
         extracted_at: new Date().toISOString(),
         client_side: true,
       },
@@ -295,13 +338,18 @@ export async function uploadTextExtract(input: {
     console.log(`Job ${job.id} created with text${hasPages ? ' and pages' : ''}, triggering parser...`)
     
     // 5. Trigger Edge Function to parse the extracted text (fire and forget)
-    // Don't await - let it process in background to avoid HTTP 504 timeout
-    // The client polling will pick up the result when ready
-    processImportJob(job.id).catch(err => {
-      console.error(`Background processing failed for job ${job.id}:`, err)
-      // Timeout errors (504) are expected and job will be updated by Edge Function
-      // Other errors will be visible in job status via polling
-    })
+    // No esperamos la respuesta para evitar timeouts en archivos grandes
+    // El cliente debe hacer polling del estado del job
+    processImportJob(job.id)
+      .then(result => {
+        console.log(`Job ${job.id} processing completed:`, result)
+      })
+      .catch(err => {
+        // Solo logueamos errores graves (no timeouts)
+        if (!err?.message?.includes('504') && !err?.message?.includes('503') && !err?.message?.includes('546')) {
+          console.error(`Background processing failed for job ${job.id}:`, err)
+        }
+      })
     
     return updatedJob as QuestionImportJob
   } catch (error: any) {
