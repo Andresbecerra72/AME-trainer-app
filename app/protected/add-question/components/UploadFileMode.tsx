@@ -2,10 +2,9 @@
 
 import { useState } from "react"
 import { MobileCard } from "@/components/mobile-card"
-import { PrimaryButton } from "@/components/primary-button"
 import { SecondaryButton } from "@/components/secondary-button"
-import { Upload, FileText, Loader2, Bell, XCircle, AlertCircle } from "lucide-react"
-import { FileImportReviewCard, PendingJobsCard, ImportProgressBar, type ImportProgress } from "@/features/questions/import/components"
+import { FileText, Loader2, Bell, XCircle, ArrowLeft } from "lucide-react"
+import { FileImportReviewCard, PendingJobsCard, ImportProgressBar, type ImportProgress, QuestionImportForm, ExtractionProgressData } from "@/features/questions/import/components"
 import { useImportNotifications } from "@/features/questions/import/hooks/useImportNotifications"
 import { User } from "@/lib/types"
 import { QuestionImportJob, DraftQuestion } from "@/features/questions/import/types"
@@ -20,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { QuestionsProgressDetails } from "@/features/questions/import/hooks/useQuestionImportJob"
 
 interface UploadFileModeProps {
   user: User | undefined
@@ -32,16 +32,12 @@ interface UploadFileModeProps {
   isPendingJobsLoading: boolean
   topics: any[]
   isSubmitting: boolean
-  progressDetails?: {
-    currentPage?: number
-    totalPages?: number
-    questionsExtracted?: number
-    percentage?: number
-    warnings?: string[]
-  } | null
+  extractionDetails: ExtractionProgressData | null
+  progressDetails?: QuestionsProgressDetails | null
   onFileUpload: (file: File) => Promise<void>
   onResumeJob: (job: any) => Promise<void>
   onDeleteJob: (job: any) => Promise<boolean>
+  onResetStateJob: () => void
   onSubmitFileImport: (payload: {
     topic_id: string
     difficulty: "easy" | "medium" | "hard"
@@ -55,7 +51,6 @@ export function UploadFileMode({
   isUploading,
   isExtracting,
   extractionProgress,
-  error,
   pendingJobs,
   isPendingJobsLoading,
   topics,
@@ -65,7 +60,12 @@ export function UploadFileMode({
   onResumeJob,
   onDeleteJob,
   onSubmitFileImport,
+  extractionDetails,
+  onResetStateJob,
+  error
 }: UploadFileModeProps) {
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [jobToCancel, setJobToCancel] = useState<QuestionImportJob | null>(null)
   // Setup notifications
   useImportNotifications({
     jobId: job?.id || null,
@@ -110,17 +110,7 @@ export function UploadFileMode({
       message,
     }
   }
-
-  const [showCancelDialog, setShowCancelDialog] = useState(false)
-  const [jobToCancel, setJobToCancel] = useState<QuestionImportJob | null>(null)
-
   const progress = getImportProgress()
-  // Show progress if there's a job OR if there's extraction/upload activity OR if there's an error
-  const showProgress = (job && (isUploading || isExtracting || job.status === "processing" || job.status === "ready" || job.status === "failed")) || 
-                       (!job && (isUploading || isExtracting || error))
-  // Can upload if: no job, or job failed/completed, or there's an error without a job
-  const canUploadNew = !job || job.status === "failed" || job.status === "completed" || (!job && error && !isExtracting && !isUploading)
-  const hasActiveJob = job && (job.status === "processing" || job.status === "ready")
 
   const handleCancelJob = () => {
     if (!job) return
@@ -142,8 +132,15 @@ export function UploadFileMode({
     setJobToCancel(null)
   }
 
+    // Show progress if there's a job OR if there's extraction/upload activity OR if there's an error
+  const showProgress = (job && (isUploading || isExtracting || job.status === "processing" || job.status === "ready" || job.status === "failed")) || 
+                       (!job && (isUploading || isExtracting || error))
+  // Can upload if: no job, or job failed/completed, or there's an error without a job
+  const canUploadNew = !job || job.status === "failed" || job.status === "completed" || (!job && error && !isExtracting && !isUploading)
+  const hasActiveJob = job && (job.status === "processing" || job.status === "ready")
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mb-16">
       {/* Notification Permission Alert */}
       {typeof window !== "undefined" && "Notification" in window && Notification.permission === "default" && (
         <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800">
@@ -166,23 +163,31 @@ export function UploadFileMode({
 
       {/* Active Job Warning - Allow Cancel */}
       {hasActiveJob && (
-        <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
-          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-          <AlertDescription className="flex items-center justify-between gap-4">
-            <div className="flex-1 text-sm text-amber-700 dark:text-amber-300">
-              <strong>File in progress:</strong> {job.file_name || "Untitled"}
-              {job.status === "ready" && " (ready for review)"}
-              {job.status === "processing" && " (extracting questions)"}
-            </div>
-            <SecondaryButton
-              onClick={handleCancelJob}
-              className="flex-shrink-0 gap-2 h-10 text-sm px-4"
-            >
-              <XCircle className="w-4 h-4" />
-              Cancel & Upload New
-            </SecondaryButton>
-          </AlertDescription>
-        </Alert>
+        <>
+        {job.status === "ready" && (<SecondaryButton
+          onClick={onResetStateJob}
+          className="flex-shrink-0 gap-2 h-10 text-sm px-24 mb-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </SecondaryButton>)}
+        <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">          
+            <AlertDescription className="flex items-center justify-between gap-4">
+              <div className="flex-1 text-sm text-amber-700 dark:text-amber-300">
+                <strong>File in progress:</strong> {job.file_name || "Untitled"}
+                {job.status === "ready" && " (ready for review)"}
+                {job.status === "processing" && " (extracting questions)"}
+              </div>
+              { job.status !== "ready" && (<SecondaryButton
+                onClick={handleCancelJob}
+                className="flex-shrink-0 gap-2 h-10 text-sm px-4"
+              >
+                <XCircle className="w-4 h-4" />
+                Cancel & Upload New
+              </SecondaryButton>)}
+
+            </AlertDescription>
+          </Alert></>
       )}
 
       {/* Upload Area */}
@@ -196,40 +201,20 @@ export function UploadFileMode({
               </div>
             </MobileCard>
           )}
-          
-          <MobileCard className="border-dashed border-2 p-12 text-center space-y-6 hover:border-primary/50 transition-colors">
-            <div className="flex justify-center">
-              <div className="p-6 bg-primary/10 rounded-2xl">
-                <Upload className="w-12 h-12 text-primary" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-lg font-semibold text-foreground">Upload Question File</p>
-              <p className="text-base text-muted-foreground">PDF or image files supported</p>
-            </div>
-            <input 
-              type="file" 
-              accept="application/pdf,image/*" 
-              className="hidden" 
-              id="file-upload"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) onFileUpload(file)
-                e.target.value = ''
-              }}
-              disabled={!user?.id || isUploading || isExtracting}
+
+           {/* Import Form */}
+           <QuestionImportForm 
+              user={user}
+              job={job}
+              isUploading={isUploading}
+              isExtracting={isExtracting}
+              extractionProgress={extractionProgress}
+              extractionDetails={extractionDetails}
+              progressDetails={progressDetails}
+              onFileUpload={onFileUpload}
+              error={error}
             />
-            <label htmlFor="file-upload">
-              <PrimaryButton 
-                type="button" 
-                onClick={() => document.getElementById("file-upload")?.click()} 
-                className="h-12 px-8 text-base"
-                disabled={!user?.id || isUploading || isExtracting}
-              >
-                {isExtracting ? "Extracting..." : isUploading ? "Uploading..." : "Choose File"}
-              </PrimaryButton>
-            </label>
-          </MobileCard>
+          
 
        {!showProgress && (
           <MobileCard className="bg-muted/30 p-6">

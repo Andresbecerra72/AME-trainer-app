@@ -1,178 +1,108 @@
+// ===============================
+// QuestionImportForm.tsx
+// ===============================
+
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Card, CardContent } from "@/components/ui/card"
 import { ImportProgressBar } from "./ImportProgressBar"
-import { useQuestionImportJob } from "../hooks/useQuestionImportJob"
-import type { ImportProgress } from "./ImportProgressBar"
-import { FileText, Upload, X } from "lucide-react"
+import { ExtractionProgressBar, ExtractionProgressData } from "./ExtractionProgressBar"
+import { Upload } from "lucide-react"
+import { MobileCard } from "@/components/mobile-card"
+import { PrimaryButton } from "@/components/primary-button"
+import { User } from "@/lib/types"
+import { QuestionImportJob } from "../types"
+import { QuestionsProgressDetails } from "../hooks/useQuestionImportJob"
 
-export function QuestionImportForm() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const { 
-    job, 
-    isUploading, 
-    isExtracting, 
-    extractionProgress, 
-    error,
+interface QuestionImportFormProps {
+  user: User | undefined
+  job: QuestionImportJob | null
+  isUploading: boolean
+  isExtracting: boolean
+  extractionProgress: string
+  error: string | null
+  extractionDetails: ExtractionProgressData | null
+  progressDetails?: QuestionsProgressDetails | null
+  onFileUpload: (file: File) => Promise<void>
+}
+
+export function QuestionImportForm({
+    user,
+    job,
+    isUploading,
+    isExtracting,
+    extractionProgress,
+    extractionDetails,
     progressDetails,
-    startUpload,
-    deleteJob 
-  } = useQuestionImportJob()
+    error,
+    onFileUpload
+  }: QuestionImportFormProps) {
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setSelectedFile(file)
-    }
-  }
-
-  const handleUpload = async () => {
-    if (!selectedFile) return
-    await startUpload(selectedFile)
-  }
-
-  const handleCancel = async () => {
-    if (job?.id) {
-      await deleteJob(job.id)
-    }
-    setSelectedFile(null)
-  }
-
-  // Map job state to ImportProgress
-  const getImportProgress = (): ImportProgress => {
-    if (isExtracting) {
-      return {
-        status: "extracting",
-        message: extractionProgress,
-      }
-    }
-
-    if (isUploading) {
-      return {
-        status: "uploading",
-        message: "Uploading to server...",
-      }
-    }
-
-    if (job) {
-      const status = job.status === "pending" || job.status === "processing" 
-        ? "processing"
-        : job.status === "ready"
-        ? "ready"
-        : job.status === "failed"
-        ? "failed"
-        : "idle"
-
-      return {
-        status,
-        currentPage: progressDetails?.currentPage,
-        totalPages: progressDetails?.totalPages,
-        questionsExtracted: progressDetails?.questionsExtracted,
-        percentage: progressDetails?.percentage,
-        error: job.error || error || undefined,
-        warnings: progressDetails?.warnings,
-      }
-    }
-
-    return { status: "idle" }
-  }
-
-  const progress = getImportProgress()
-  const isProcessing = isExtracting || isUploading || job?.status === "processing"
-  const canUpload = selectedFile && !isProcessing
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Import Questions from PDF
-        </CardTitle>
-        <CardDescription>
-          Upload a PDF file with exam questions. The system will extract and process them automatically.
-        </CardDescription>
-      </CardHeader>
       <CardContent className="space-y-4">
-        {/* File Input */}
         {!job && (
           <div className="space-y-2">
-            <Label htmlFor="file-upload">Select PDF File</Label>
-            <div className="flex gap-2">
-              <Input
-                id="file-upload"
-                type="file"
-                accept=".pdf"
-                onChange={handleFileSelect}
-                disabled={isProcessing}
-                className="flex-1"
-              />
-              {selectedFile && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setSelectedFile(null)}
-                  disabled={isProcessing}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
+                <MobileCard className="border-dashed border-2 p-10 text-center space-y-4 hover:border-primary/50 transition-colors">
+            <div className="flex justify-center">
+              <div className="p-6 bg-primary/10 rounded-2xl">
+                <Upload className="w-10 h-10 text-primary" />
+              </div>
             </div>
-            {selectedFile && (
-              <p className="text-sm text-muted-foreground">
-                Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-              </p>
-            )}
+            <div className="space-y-2">
+              <p className="text-lg font-semibold text-foreground">Upload Question File</p>
+              <p className="text-base text-muted-foreground">PDF or image files supported</p>
+            </div>
+            <input 
+              type="file" 
+              accept="application/pdf,image/*" 
+              className="hidden" 
+              id="file-upload"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) onFileUpload(file)
+                e.target.value = ''
+              }}
+              disabled={!user?.id || isUploading || isExtracting}
+            />
+            <label htmlFor="file-upload">
+              <PrimaryButton 
+                type="button" 
+                onClick={() => document.getElementById("file-upload")?.click()} 
+                className="h-12 px-8 text-base"
+                disabled={!user?.id || isUploading || isExtracting}
+              >
+                {isExtracting ? "Extracting..." : isUploading ? "Uploading..." : "Choose File"}
+              </PrimaryButton>
+            </label>
+          </MobileCard>
+           
           </div>
         )}
-
-        {/* Progress */}
-        {(isProcessing || job) && (
-          <ImportProgressBar progress={progress} />
+        
+        {/* Extraction Progress - shown during text extraction phase */}
+        {extractionDetails && (
+          <ExtractionProgressBar progress={extractionDetails} />
         )}
 
-        {/* Actions */}
-        <div className="flex gap-2">
-          {!job && (
-            <Button
-              onClick={handleUpload}
-              disabled={!canUpload}
-              className="flex-1"
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Upload and Process
-            </Button>
-          )}
-
-          {job && job.status !== "ready" && (
-            <Button
-              variant="destructive"
-              onClick={handleCancel}
-              disabled={isExtracting || isUploading}
-            >
-              Cancel Import
-            </Button>
-          )}
-
-          {job?.status === "ready" && (
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              className="flex-1"
-            >
-              Import Another File
-            </Button>
-          )}
-        </div>
-
-        {/* Error Display */}
-        {error && !job && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <p className="text-sm text-red-800">{error}</p>
-          </div>
+        {/* Import Progress - shown after extraction during upload/processing */}
+        {(isUploading || job) && !isExtracting && (
+          <ImportProgressBar
+            progress={{
+              status:   job?.status === "ready" ? "ready" :
+              job?.status === "failed" ? "failed" :
+              job?.status === "processing" ? "processing" :
+              "idle",
+              message: extractionProgress,
+              currentPage: progressDetails?.currentPage,
+              totalPages: progressDetails?.totalPages,
+              percentage: progressDetails?.percentage,
+              questionsExtracted: progressDetails?.questionsExtracted,
+              error: error || undefined,
+              warnings: progressDetails?.warnings,
+            }}
+          />
         )}
       </CardContent>
     </Card>

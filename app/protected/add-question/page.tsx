@@ -41,7 +41,7 @@ export default function AddQuestionPage() {
     <div className="min-h-screen bg-background">
       <MobileHeader title="Add Question" showBack />
 
-      <div className="p-4 sm:p-6 pb-24 md:pb-6 space-y-4 max-w-4xl mx-auto">
+      <div className="p-4 sm:p-6 pb-24 md:pb-6 space-y-4 max-w-4xl mx-auto mb-16">
         {/* Mode Selector */}
         <div className="flex justify-center mb-4">
           <SegmentedControl
@@ -71,6 +71,7 @@ export default function AddQuestionPage() {
             onFileUpload={fileUpload.handleFileUpload}
             onResumeJob={fileUpload.handleResumeJob}
             onDeleteJob={fileUpload.handleDeleteJob}
+            onResetStateJob={fileUpload.handleResetStateJob}
             onSubmitFileImport={fileUpload.handleSubmitFileImport}
           />
         )}

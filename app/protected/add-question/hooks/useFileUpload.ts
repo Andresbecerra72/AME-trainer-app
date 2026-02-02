@@ -16,11 +16,13 @@ export function useFileUpload(user: User | undefined) {
     isUploading, 
     isExtracting, 
     extractionProgress, 
-    error, 
     progressDetails,
+    extractionDetails,
     startUpload, 
     resumeJob, 
-    deleteJob 
+    deleteJob,
+    resetStateJob,
+    error, 
   } = useQuestionImportJob()
   const { pendingJobs, isLoading: isPendingJobsLoading, refresh: refreshPendingJobs } = usePendingJobs()
 
@@ -111,18 +113,25 @@ export function useFileUpload(user: User | undefined) {
     }
   }
 
+  const handleResetStateJob = () => {
+    refreshPendingJobs()
+    resetStateJob()
+  }
+
   return {
     job,
     isUploading,
     isExtracting,
     extractionProgress,
-    error,
     progressDetails,
+    extractionDetails,
     pendingJobs,
     isPendingJobsLoading,
     handleFileUpload,
     handleResumeJob,
     handleDeleteJob,
     handleSubmitFileImport,
+    handleResetStateJob,
+    error,
   }
 }

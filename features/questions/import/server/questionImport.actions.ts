@@ -3,51 +3,6 @@ import { parseQuestionsFromText } from "../parsers/questionText.parser"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { DraftQuestion, QuestionImportJob } from "../types"
 
-// Helper function to extract PDF text
-async function extractPdfText(buffer: Buffer): Promise<string> {
-  return new Promise((resolve, reject) => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { PdfReader } = require('pdfreader')
-      const reader = new PdfReader()
-      
-      // Store items with their position to reconstruct text properly
-      const rows: { [key: number]: string[] } = {}
-      let hasReceivedData = false
-      
-      reader.parseBuffer(buffer, (err: any, item: any) => {
-        if (err) {
-          console.error('PDF parsing error:', err)
-          reject(new Error(`PDF parsing failed: ${err.message || err}`))
-        } else if (!item) {
-          // End of parsing - reconstruct text from rows
-          if (!hasReceivedData) {
-            reject(new Error('No text data extracted from PDF'))
-            return
-          }
-          
-          const lines = Object.keys(rows)
-            .sort((a, b) => parseFloat(a) - parseFloat(b))
-            .map(y => rows[parseFloat(y)].join(''))
-          
-          const text = lines.join('\n').trim()
-          console.log(`Reconstructed ${lines.length} lines of text`)
-          resolve(text)
-        } else if (item.text) {
-          // Group text by Y position (row)
-          hasReceivedData = true
-          const y = item.y || 0
-          if (!rows[y]) rows[y] = []
-          rows[y].push(item.text)
-        }
-      })
-    } catch (error: any) {
-      console.error('Error initializing PDF reader:', error)
-      reject(new Error(`Failed to initialize PDF reader: ${error.message || error}`))
-    }
-  })
-}
-
 export async function createQuestionsBatch(input: {
   topic_id: string
   difficulty: "easy" | "medium" | "hard"
@@ -94,13 +49,7 @@ export async function processImportJob(jobId: string) {
     ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/parse-import-job`
     : "http://127.0.0.1:54321/functions/v1/parse-import-job"
     
-  const EDGE_FUNCTION_URL_BATCH = process.env.NEXT_PUBLIC_SUPABASE_URL 
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/process-import-job-batch`
-    : "http://127.0.0.1:54321/functions/v1/process-import-job-batch"
-
-  const MAX_ATTEMPTS = 100 // Límite de intentos para evitar loops infinitos
-  const MAX_DURATION_MS = 50_000 // Máximo 50 segundos de procesamiento sincrónico
-  const POLL_INTERVAL_MS = 500 // Intervalo entre consultas
+  
 
   try {
      // 1) Encolar el job (Edge Function parse-import-job)
@@ -113,6 +62,8 @@ export async function processImportJob(jobId: string) {
       body: JSON.stringify({ jobId }),
     })
 
+    console.log("parse-import-job: ", response )
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: "Unknown error" }))
       throw new Error(error.error || `HTTP ${response.status}`)
@@ -121,88 +72,7 @@ export async function processImportJob(jobId: string) {
     const queueResult = await response.json()
     console.log("Job enqueued:", queueResult)
 
-    // 2) Procesar batches con límites de tiempo y reintentos
-    const startTime = Date.now()
-    let attempts = 0
-    let done = false
-
-    while (!done && attempts < MAX_ATTEMPTS) {
-      // Verificar timeout global
-      if (Date.now() - startTime > MAX_DURATION_MS) {
-        console.log(`Reached time limit for job ${jobId}, continuing in background`)
-        return { 
-          status: "processing", 
-          message: "Job is processing in background. Check status later.",
-          background: true 
-        }
-      }
-
-      attempts++
-
-      try {
-        const res = await fetch(EDGE_FUNCTION_URL_BATCH, {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json", 
-            "Authorization": `Bearer ${session.access_token}` 
-          },
-          body: JSON.stringify({ jobId }),
-        })
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({ error: "Unknown error" }))
-          console.error(`Batch processing error (attempt ${attempts}):`, errData)
-          
-          // Si es error de servidor (5xx), esperar más tiempo
-          if (res.status >= 500) {
-            await new Promise(r => setTimeout(r, POLL_INTERVAL_MS * 2))
-            continue
-          }
-          
-          throw new Error(errData.error || `HTTP ${res.status}`)
-        }
-
-        const data = await res.json()
-        console.log(`Batch result (attempt ${attempts}):`, {
-          done: data.done,
-          status: data.status,
-          processedPages: data.processedPages,
-          totalQuestions: data.totalQuestionsSoFar
-        })
-
-        done = !!data.done
-        
-        // Si el job falló, lanzar error
-        if (data.status === "failed") {
-          throw new Error(data.error || "Job processing failed")
-        }
-
-        // Si no está terminado, esperar antes del siguiente intento
-        if (!done) {
-          await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
-        }
-      } catch (fetchError: any) {
-        console.error(`Fetch error in batch ${attempts}:`, fetchError)
-        
-        // Si es timeout de red, continuar intentando
-        if (fetchError.name === 'AbortError' || fetchError.message.includes('timeout')) {
-          await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
-          continue
-        }
-        
-        throw fetchError
-      }
-    }
-
-    if (attempts >= MAX_ATTEMPTS && !done) {
-      console.warn(`Max attempts reached for job ${jobId}, job may still be processing`)
-      return { 
-        status: "processing", 
-        message: "Maximum attempts reached. Job continues in background.",
-        background: true 
-      }
-    }
-
+   
     // Job completado
     return { status: "ready", message: "Job completed successfully" }
   } catch (e: any) {
@@ -295,28 +165,45 @@ export async function pollImportJobStatus(jobId: string): Promise<{
   
   const { data: job, error } = await supabase
     .from("question_imports")
-    .select("status, next_page, total_pages, completed_pages, result, error, stats")
+    .select("status, next_page, total_pages, completed_pages, result, error, stats, raw_pages")
     .eq("id", jobId)
     .single()
 
   if (error) throw new Error(error.message)
 
-  const totalPages = job.total_pages || 1
-  const completedPages = job.completed_pages || 0
+  // Extract stats for progress tracking
+  const stats = (job.stats as any) || {}
+  
+  // Get total pages from stats first, then raw_pages array, then total_pages column
+  const totalPages = stats.total_pages || 
+                     (job.raw_pages && Array.isArray(job.raw_pages) ? job.raw_pages.length : null) ||
+                     job.total_pages || 
+                     1
+  
+  // Get completed pages from stats first (most up-to-date), then from column
+  const completedPages = stats.completed_pages ?? job.completed_pages ?? 0
+  
+  // Calculate real percentage
+  const percentage = totalPages > 0 
+    ? Math.round((completedPages / totalPages) * 100)
+    : 0
+  
+  // Get questions from result array
   const questionsExtracted = Array.isArray(job.result) ? job.result.length : 0
   
   // Extract warnings from stats
-  const stats = (job.stats as any) || {}
   const warnings = Array.isArray(stats.warnings) ? stats.warnings : []
   const failedPages = Array.isArray(stats.failed_pages) ? stats.failed_pages : []
   const successfulPages = Array.isArray(stats.successful_pages) ? stats.successful_pages : []
+
+  console.log(`[POLL] Job ${jobId}: ${completedPages}/${totalPages} pages (${percentage}%) - ${questionsExtracted} questions`)
 
   return {
     status: job.status,
     progress: {
       current: completedPages,
       total: totalPages,
-      percentage: Math.round((completedPages / totalPages) * 100)
+      percentage
     },
     questionsExtracted,
     error: job.error,
@@ -406,13 +293,19 @@ export async function uploadTextExtract(input: {
     }
     
     // 3. Update job with extracted text, pages array, and metadata
+    const totalPages = hasPages ? input.rawPages!.length : 1
     const updatePayload: any = {
       file_path: path,
       raw_text: input.rawText,
+      total_pages: totalPages,
+      completed_pages: 0,
+      next_page: 1,
       stats: {
         extraction_method: input.extractionMethod,
         text_length: input.rawText.length,
-        page_count: hasPages ? input.rawPages!.length : 1,
+        page_count: totalPages,
+        total_pages: totalPages,
+        completed_pages: 0,
         extracted_at: new Date().toISOString(),
         client_side: true,
       },

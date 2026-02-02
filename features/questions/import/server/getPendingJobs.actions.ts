@@ -23,7 +23,6 @@ export async function getPendingJobs(): Promise<QuestionImportJob[]> {
       .eq("user_id", user.id)
       .in("status", ["pending", "processing", "ready"])
       .order("created_at", { ascending: false })
-      .limit(5) // Only show last 5 pending jobs
     
     if (error) throw error
     

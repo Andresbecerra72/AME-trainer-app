@@ -1,26 +1,30 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { flushSync } from "react-dom"
 import type { QuestionImportJob } from "../types"
 import { getImportJob, uploadTextExtract, pollImportJobStatus } from "../server/questionImport.actions"
 import { getSession } from "@/features/auth/services/getSession"
-import { extractTextFromFile, validateExtractedText } from "../utils/textExtraction"
+import { extractTextFromFile, validateExtractedText, type ExtractionProgress } from "../utils/textExtraction"
 import { deleteImportJob } from "../server/deleteImportJob.actions"
 import { useImportNotifications } from "./useImportNotifications"
+
+export interface QuestionsProgressDetails {
+    currentPage?: number
+    totalPages?: number
+    questionsExtracted?: number
+    percentage?: number
+    warnings?: string[]
+  }
 
 export function useQuestionImportJob() {
   const [job, setJob] = useState<QuestionImportJob | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
   const [extractionProgress, setExtractionProgress] = useState<string>("")
+  const [extractionDetails, setExtractionDetails] = useState<ExtractionProgress | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [progressDetails, setProgressDetails] = useState<{
-    currentPage?: number
-    totalPages?: number
-    questionsExtracted?: number
-    percentage?: number
-    warnings?: string[]
-  } | null>(null)
+  const [progressDetails, setProgressDetails] = useState<QuestionsProgressDetails | null>(null)
 
   const pollRef = useRef<number | null>(null)
   const warningsShownRef = useRef<Set<string>>(new Set())
@@ -142,6 +146,15 @@ export function useQuestionImportJob() {
     resetState()
     setIsExtracting(true)
     setExtractionProgress("Preparing file...")
+    
+    // Initialize extraction details immediately
+    setExtractionDetails({
+      currentPage: 0,
+      totalPages: 0,
+      percentage: 0,
+      method: 'pdf',
+      message: 'Preparing file...'
+    })
 
     try {
       const { user } = await getSession()
@@ -149,7 +162,14 @@ export function useQuestionImportJob() {
 
       // Extract text from file
       setExtractionProgress("Extracting text from file...")
-      const extractionResult = await extractTextFromFile(file)
+      const extractionResult = await extractTextFromFile(file, (progress) => {
+        // Update extraction progress in real-time
+        // Force synchronous update to ensure immediate re-render
+        flushSync(() => {
+          setExtractionDetails({ ...progress })
+          setExtractionProgress(progress.message)
+        })
+      })
 
       // Validate extracted text
       setExtractionProgress("Validating extracted text...")
@@ -166,6 +186,9 @@ export function useQuestionImportJob() {
       setIsExtracting(false)
       setIsUploading(true)
       setExtractionProgress("Uploading to server...")
+      
+      // Keep extraction details visible for a moment
+      setTimeout(() => setExtractionDetails(null), 500)
       
       const result = await uploadTextExtract({
         file,
@@ -244,6 +267,7 @@ export function useQuestionImportJob() {
     setIsExtracting(false)
     setIsUploading(false)
     setExtractionProgress("")
+    setExtractionDetails(null)
   }
 
   function handleError(e: any) {
@@ -253,15 +277,23 @@ export function useQuestionImportJob() {
     setIsUploading(false)
   }
 
+  function resetStateJob() {
+    setJob(null)
+    resetState()
+    setProgressDetails(null)
+  }
+  
   return {
     job,
     isUploading,
     isExtracting,
     extractionProgress,
-    error,
+    extractionDetails,
     progressDetails,
     startUpload,
     resumeJob,
     deleteJob,
+    resetStateJob,
+    error,
   }
 }
