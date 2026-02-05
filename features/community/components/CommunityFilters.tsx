@@ -60,7 +60,7 @@ export function CommunityFilters({ topics }: CommunityFiltersProps) {
 
   const ratingNames: Record<string, string> = {
     M: "M Rating",
-    T: "T Rating",
+    S: "S Rating",
     E: "E Rating",
   }
 
@@ -68,9 +68,10 @@ export function CommunityFilters({ topics }: CommunityFiltersProps) {
     SPM: "Standard Practices",
     AF: "Airframe",
     PP: "Powerplant",
-    TG: "Turbine Gas",
-    EG: "Electrical General",
-    EAV: "Avionics",
+    SPS: "Standard Practices Structures",
+    ST: "Structures",
+    SPE: "Standard Practices Avionics",
+    AV: "Avionics",
   }
 
   // Get selected topic name for display

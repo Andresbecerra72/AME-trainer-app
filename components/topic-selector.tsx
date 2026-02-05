@@ -32,8 +32,10 @@ const CATEGORIES = {
   ],
   E: [
     { id: "SPE", label: "Standard Practices Avionics", prefix: "E-SPE" },
+    { id: "AV", label: "Avionics", prefix: "E-AV" },
   ],
   S: [
+    { id: "SPS", label: "Standard Practices Structures", prefix: "S-SPS" },
     { id: "ST", label: "Structures", prefix: "S-ST" },
   ],
 }

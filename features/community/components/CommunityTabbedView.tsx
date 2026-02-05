@@ -38,9 +38,10 @@ const categoryNames: Record<string, string> = {
   SPM: "Standard Practices & Maintenance",
   AF: "Airframe",
   PP: "Powerplant",
-  TG: "Turbine Gas",
-  EG: "Electrical General",
-  EAV: "Avionics",
+  SPS: "Standard Practices Structures",
+  ST: "Structures",
+  SPE: "Standard Practices Avionics",
+  AV: "Avionics",
 }
 
 export function CommunityTabbedView({ questions }: CommunityTabbedViewProps) {
@@ -51,7 +52,7 @@ export function CommunityTabbedView({ questions }: CommunityTabbedViewProps) {
     const parts = question.topic.code.split("-")
     if (parts.length < 2) return acc
 
-    const rating = parts[0] // M, T, E
+    const rating = parts[0] // M, S, E
     const category = parts[1] // SPM, AF, PP, etc.
 
     if (!acc[rating]) acc[rating] = {}
@@ -61,7 +62,7 @@ export function CommunityTabbedView({ questions }: CommunityTabbedViewProps) {
     return acc
   }, {} as Record<string, Record<string, Question[]>>)
 
-  const ratings = ["M", "T", "E"]
+  const ratings = ["M", "S", "E"]
   const hasQuestions = Object.keys(groupedQuestions).length > 0
 
   if (!hasQuestions) {

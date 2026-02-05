@@ -1,6 +1,8 @@
 "use server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { topicBatchSchema, type TopicBatchInput } from "../utils/topic.validation";
+import { revalidatePath } from "next/cache";
 
 export async function getAllTopicsServer() {
   const supabase = await createSupabaseServerClient();
@@ -119,4 +121,104 @@ export async function updateTopicAction(
   }
 
   return topic;
+}
+
+/**
+ * Create multiple topics at once (batch creation)
+ * @param input - Batch input with array of topics
+ * @returns Array of created topics
+ */
+export async function createTopicBatchAction(input: TopicBatchInput) {
+  const supabase = await createSupabaseServerClient();
+
+  // Authenticate and authorize
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData?.user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", authData.user.id)
+    .single();
+
+  if (!profile || !["admin", "super_admin"].includes(profile.role)) {
+    throw new Error("Unauthorized: admin access required");
+  }
+
+  // Validate input
+  const validation = topicBatchSchema.safeParse(input);
+  if (!validation.success) {
+    throw new Error(`Validation error: ${validation.error.issues[0].message}`);
+  }
+
+  // Check for duplicate codes
+  const codes = input.topics.map((t) => t.code);
+  const { data: existingTopics } = await supabase
+    .from("topics")
+    .select("code")
+    .in("code", codes);
+
+  if (existingTopics && existingTopics.length > 0) {
+    const duplicateCodes = existingTopics.map((t) => t.code).join(", ");
+    throw new Error(`Topics with these codes already exist: ${duplicateCodes}`);
+  }
+
+  // Prepare data for insertion
+  const topicsToInsert = input.topics.map((topic) => ({
+    name: topic.name,
+    description: topic.description,
+    code: topic.code,
+    icon: topic.icon?.toLowerCase() || null,
+    question_count: 0,
+  }));
+
+  // Insert all topics
+  const { data: createdTopics, error } = await supabase
+    .from("topics")
+    .insert(topicsToInsert)
+    .select();
+
+  if (error) {
+    console.error("Error creating topics batch:", error);
+    throw new Error(`Failed to create topics: ${error.message}`);
+  }
+
+  // Revalidate admin pages
+  revalidatePath("/admin/topics");
+  revalidatePath("/protected/dashboard");
+
+  return createdTopics;
+}
+
+/**
+ * Delete a topic by ID
+ */
+export async function deleteTopicAction(topicId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData?.user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", authData.user.id)
+    .single();
+
+  if (!profile || !["admin", "super_admin"].includes(profile.role)) {
+    throw new Error("Unauthorized: admin access required");
+  }
+
+  const { error } = await supabase
+    .from("topics")
+    .delete()
+    .eq("id", topicId);
+
+  if (error) {
+    console.error("Error deleting topic:", error);
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin/topics");
+  return { success: true };
 }

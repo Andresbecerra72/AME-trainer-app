@@ -67,8 +67,8 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
       const parts = topic.code.split("-")
       if (parts.length < 2) return
 
-      const rating = parts[0] // M, T, E
-      const category = parts[1] // SPM, AF, PP, TG, EG, etc.
+      const rating = parts[0] // M, S, E
+      const category = parts[1] // SPM, AF, PP, SPS, ST, SPE, AV
 
       if (!groups[rating]) groups[rating] = {}
       if (!groups[rating][category]) groups[rating][category] = []
@@ -80,7 +80,7 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
 
   const ratingNames: Record<string, string> = {
     M: "M Rating",
-    T: "T Rating",
+    S: "S Rating",
     E: "E Rating",
   }
 
@@ -88,9 +88,10 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
     SPM: "Standard Practices",
     AF: "Airframe",
     PP: "Powerplant",
-    TG: "Turbine Gas",
-    EG: "Electrical General",
-    EAV: "Avionics",
+    SPS: "Standard Practices Structures",
+    ST: "Structures",
+    SPE: "Standard Practices Avionics",
+    AV: "Avionics",
   }
 
   const handleChange = (field: keyof QuestionFormValues, value: string) => {
