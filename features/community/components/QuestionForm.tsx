@@ -22,6 +22,7 @@ import { createCommunityQuestion, updateCommunityQuestion } from "@/features/com
 import { questionFormSchema, type QuestionFormValues } from "@/features/community/community.validation"
 import { checkQuestionDuplicates } from "@/features/questions/services/duplicates"
 import Link from "next/link"
+import { CATEGORY_NAMES, RATING_NAMES } from "../utils/cummunity.constants"
 
 interface Topic {
   id: string
@@ -78,21 +79,7 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
     return groups
   }, [topics])
 
-  const ratingNames: Record<string, string> = {
-    M: "M Rating",
-    S: "S Rating",
-    E: "E Rating",
-  }
 
-  const categoryNames: Record<string, string> = {
-    SPM: "Standard Practices",
-    AF: "Airframe",
-    PP: "Powerplant",
-    SPS: "Standard Practices Structures",
-    ST: "Structures",
-    SPE: "Standard Practices Avionics",
-    AV: "Avionics",
-  }
 
   const handleChange = (field: keyof QuestionFormValues, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -429,12 +416,12 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
               {Object.entries(groupedTopics).map(([rating, categories]) => (
                 <SelectGroup key={rating}>
                   <SelectLabel className="text-base font-bold text-primary">
-                    {ratingNames[rating] || rating}
+                    {RATING_NAMES[rating] || rating}
                   </SelectLabel>
                   {Object.entries(categories).map(([category, categoryTopics]) => (
                     <div key={category}>
                       <SelectLabel className="pl-4 text-sm font-semibold text-muted-foreground">
-                        {categoryNames[category] || category}
+                        {CATEGORY_NAMES[category] || category}
                       </SelectLabel>
                       {categoryTopics.map((topic) => (
                         <SelectItem key={topic.id} value={topic.id} className="pl-8">

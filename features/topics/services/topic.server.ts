@@ -10,7 +10,7 @@ export async function getAllTopicsServer() {
   const { data, error } = await supabase
     .from("topics")
     .select("*")
-    .order("name", { ascending: true });
+    .order("code", { ascending: true });
 
   if (error) {
     console.error("TOPICS SSR ERROR:", error);
