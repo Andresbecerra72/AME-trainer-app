@@ -47,6 +47,14 @@ const RATING_CONFIG = {
       { id: "ST", label: "Structures", prefix: "S-ST" },
     ],
   },
+  REGS: {
+    label: "CARs & Standards",
+    description: "Regulations and Standards",
+    categories: [
+      { id: "CARs", label: "Regulations CARs", prefix: "REGS-CARs" },
+      { id: "STDs", label: "Standards", prefix: "REGS-STDs" },
+    ],
+  }
 }
 
 export default function TopicsPage() {
