@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CategorySection } from "./CategorySection"
 import { EmptyState } from "@/components/empty-state"
 import { MessageCircle } from "lucide-react"
+import { CATEGORY_NAMES } from "../utils/cummunity.constants"
 
 interface Question {
   id: string
@@ -34,15 +35,6 @@ interface CommunityTabbedViewProps {
   questions: Question[]
 }
 
-const categoryNames: Record<string, string> = {
-  SPM: "Standard Practices & Maintenance",
-  AF: "Airframe",
-  PP: "Powerplant",
-  TG: "Turbine Gas",
-  EG: "Electrical General",
-  EAV: "Avionics",
-}
-
 export function CommunityTabbedView({ questions }: CommunityTabbedViewProps) {
   // Group questions by rating and category
   const groupedQuestions = questions.reduce((acc, question) => {
@@ -51,7 +43,7 @@ export function CommunityTabbedView({ questions }: CommunityTabbedViewProps) {
     const parts = question.topic.code.split("-")
     if (parts.length < 2) return acc
 
-    const rating = parts[0] // M, T, E
+    const rating = parts[0] // M, S, E
     const category = parts[1] // SPM, AF, PP, etc.
 
     if (!acc[rating]) acc[rating] = {}
@@ -61,7 +53,7 @@ export function CommunityTabbedView({ questions }: CommunityTabbedViewProps) {
     return acc
   }, {} as Record<string, Record<string, Question[]>>)
 
-  const ratings = ["M", "T", "E"]
+  const ratings = ["M", "S", "E", "REGS"]
   const hasQuestions = Object.keys(groupedQuestions).length > 0
 
   if (!hasQuestions) {
@@ -78,7 +70,7 @@ export function CommunityTabbedView({ questions }: CommunityTabbedViewProps) {
 
   return (
     <Tabs defaultValue="M" className="w-full">
-      <TabsList className="grid w-full grid-cols-3 mb-4">
+      <TabsList className="grid w-full grid-cols-4 mb-4">
         {ratings.map((rating) => {
           const count = Object.values(groupedQuestions[rating] || {}).reduce(
             (sum, qs) => sum + qs.length,
@@ -112,7 +104,7 @@ export function CommunityTabbedView({ questions }: CommunityTabbedViewProps) {
                 .map(([categoryCode, categoryQuestions]) => (
                   <CategorySection
                     key={categoryCode}
-                    categoryName={categoryNames[categoryCode] || categoryCode}
+                    categoryName={CATEGORY_NAMES[categoryCode] || categoryCode}
                     categoryCode={categoryCode}
                     questions={categoryQuestions}
                   />

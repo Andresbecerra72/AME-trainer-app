@@ -1,6 +1,5 @@
 /**
  * Lógica de negocio para el setup de exámenes
- * Separa la lógica del componente para mantener código limpio
  */
 
 export interface TopicWithCount {
@@ -110,11 +109,13 @@ export function getRatingDescription(ratingCode: string): string {
  */
 export function getCategoryName(categoryCode: string): string {
   const categories: Record<string, string> = {
-    SPM: "Standard Practices & Maintenance",
+    SPM: "Standard Practices",
     AF: "Airframe",
     PP: "Powerplant",
-    SPE: "Standard Practices Electronics",
+    SPS: "Standard Practices Structures",
     ST: "Structures",
+    SPE: "Standard Practices Avionics",
+    AV: "Avionics",
   }
   return categories[categoryCode] || categoryCode
 }

@@ -22,6 +22,7 @@ const RATINGS = [
   { id: "M", label: "M Rating", description: "Mechanical" },
   { id: "E", label: "E Rating", description: "Electrical/Avionics" },
   { id: "S", label: "S Rating", description: "Structures" },
+  { id: "REGS", label: "CARs/STDs", description: "Regulations/Standards" },
 ]
 
 const CATEGORIES = {
@@ -32,9 +33,15 @@ const CATEGORIES = {
   ],
   E: [
     { id: "SPE", label: "Standard Practices Avionics", prefix: "E-SPE" },
+    { id: "AV", label: "Avionics", prefix: "E-AV" },
   ],
   S: [
+    { id: "SPS", label: "Standard Practices Structures", prefix: "S-SPS" },
     { id: "ST", label: "Structures", prefix: "S-ST" },
+  ],
+  REGS: [
+    { id: "CARs", label: "Canadian Aviation Regulations (CARs)", prefix: "REGS-CARs" },
+    { id: "STDs", label: "Regulations (CARs) and Standards", prefix: "REGS-STDs" },
   ],
 }
 

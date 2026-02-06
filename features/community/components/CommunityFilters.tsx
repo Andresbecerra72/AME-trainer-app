@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Search, X, SlidersHorizontal } from "lucide-react"
 import { Card } from "@/components/ui/card"
+import { CATEGORY_NAMES, RATING_NAMES } from "../utils/cummunity.constants"
 
 interface Topic {
   id: string
@@ -57,21 +58,6 @@ export function CommunityFilters({ topics }: CommunityFiltersProps) {
 
     return groups
   }, [topics])
-
-  const ratingNames: Record<string, string> = {
-    M: "M Rating",
-    T: "T Rating",
-    E: "E Rating",
-  }
-
-  const categoryNames: Record<string, string> = {
-    SPM: "Standard Practices",
-    AF: "Airframe",
-    PP: "Powerplant",
-    TG: "Turbine Gas",
-    EG: "Electrical General",
-    EAV: "Avionics",
-  }
 
   // Get selected topic name for display
   const selectedTopicName = useMemo(() => {
@@ -190,12 +176,12 @@ export function CommunityFilters({ topics }: CommunityFiltersProps) {
                   {Object.entries(groupedTopics).map(([rating, categories]) => (
                     <SelectGroup key={rating}>
                       <SelectLabel className="text-sm font-bold text-primary py-2">
-                        {ratingNames[rating] || rating}
+                        {RATING_NAMES[rating] || rating}
                       </SelectLabel>
                       {Object.entries(categories).map(([category, categoryTopics]) => (
                         <div key={category}>
                           <SelectLabel className="pl-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider py-1.5">
-                            {categoryNames[category] || category}
+                            {CATEGORY_NAMES[category] || category}
                           </SelectLabel>
                           {categoryTopics.map((t) => (
                             <SelectItem key={t.id} value={t.id} className="pl-6">
