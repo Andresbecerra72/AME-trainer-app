@@ -66,9 +66,13 @@ export async function extractPdfText(
       
       const page = await pdf.getPage(pageNum)
       const textContent = await page.getTextContent()
-      const pageText = textContent.items
+      let pageText = textContent.items
         .map((item: any) => item.str)
         .join(' ')
+
+      if (pageText.includes('Scanned by')) {
+        pageText = '' // Clear text if it's a known OCR artifact from scanned PDFs
+      }
       
       console.log(`Page ${pageNum}: extracted ${pageText.length} characters`)
       pageTexts.push(pageText)
