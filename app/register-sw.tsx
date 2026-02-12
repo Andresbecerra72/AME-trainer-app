@@ -2,12 +2,15 @@
 
 import { useEffect } from "react"
 
+type SyncManagerLike = {
+  register: (tag: string) => Promise<void>
+}
+
 export function RegisterServiceWorker() {
   useEffect(() => {
     if (
       typeof window !== "undefined" &&
-      "serviceWorker" in navigator &&
-      process.env.NODE_ENV === "production"
+      "serviceWorker" in navigator
     ) {
       // Register service worker
       navigator.serviceWorker
@@ -112,13 +115,19 @@ export function RegisterServiceWorker() {
         }
 
         // Trigger background sync if needed
-        if ("serviceWorker" in navigator && "sync" in registration) {
-          navigator.serviceWorker.ready.then((reg) => {
-            return reg.sync.register("sync-study-progress")
-          }).catch((error) => {
-            console.log("Background sync registration failed:", error)
+        navigator.serviceWorker.ready
+          .then((reg) => {
+            if ("sync" in reg) {
+              const syncManager = (reg as ServiceWorkerRegistration & { sync: SyncManagerLike }).sync
+              syncManager.register("sync-study-progress")
+                .catch((error) => {
+                  console.log("Background sync registration failed:", error)
+                })
+            }
           })
-        }
+          .catch((error) => {
+            console.log("Service worker not ready:", error)
+          })
       })
 
       window.addEventListener("offline", () => {
