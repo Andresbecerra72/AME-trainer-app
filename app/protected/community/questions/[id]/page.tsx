@@ -77,8 +77,10 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {question.topic && (
-                  <Badge variant="secondary" className="text-xs">
-                    {question.topic.name} - {question.topic.code}
+                  <Badge variant="secondary" className="text-xs max-w-[180px] sm:max-w-none">
+                    <span className="block truncate">
+                      {question.topic.name} - {question.topic.code}
+                    </span>
                   </Badge>
                 )}
                 <Badge variant="outline" className="text-xs capitalize">

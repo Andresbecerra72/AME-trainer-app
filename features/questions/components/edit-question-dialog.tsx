@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useMemo, useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -13,10 +13,19 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { updateQuestionAction } from "@/features/questions/services/question.server"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
+import { CATEGORY_NAMES, RATING_NAMES } from "@/features/community/utils/cummunity.constants"
 
 type Question = {
   id: string
@@ -33,7 +42,7 @@ type Question = {
 
 type EditQuestionDialogProps = {
   question: Question | null
-  topics: Array<{ id: string; name: string }>
+  topics: Array<{ id: string; name: string; code?: string }>
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
@@ -60,6 +69,42 @@ export function EditQuestionDialog({
     difficulty: "medium",
     explanation: "",
   })
+
+  const groupedTopics = useMemo(() => {
+    const groups: Record<string, Record<string, Array<{ id: string; name: string; code?: string }>>> = {}
+
+    topics.forEach((topic) => {
+      if (!topic.code) {
+        const rating = "Other"
+        const category = "Uncategorized"
+
+        if (!groups[rating]) groups[rating] = {}
+        if (!groups[rating][category]) groups[rating][category] = []
+        groups[rating][category].push(topic)
+        return
+      }
+
+      const parts = topic.code.split("-")
+      if (parts.length < 2) {
+        const rating = "Other"
+        const category = "Uncategorized"
+
+        if (!groups[rating]) groups[rating] = {}
+        if (!groups[rating][category]) groups[rating][category] = []
+        groups[rating][category].push(topic)
+        return
+      }
+
+      const rating = parts[0]
+      const category = parts[1]
+
+      if (!groups[rating]) groups[rating] = {}
+      if (!groups[rating][category]) groups[rating][category] = []
+      groups[rating][category].push(topic)
+    })
+
+    return groups
+  }, [topics])
 
   useEffect(() => {
     if (question) {
@@ -106,7 +151,7 @@ export function EditQuestionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Question</DialogTitle>
           <DialogDescription>
@@ -197,36 +242,52 @@ export function EditQuestionDialog({
             </RadioGroup>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="topic">Topic</Label>
               <Select
                 value={formData.topic_id}
                 onValueChange={(value) => setFormData({ ...formData, topic_id: value })}
                 required
               >
-                <SelectTrigger id="topic">
-                  <SelectValue placeholder="Select topic" />
+                <SelectTrigger id="topic" className="min-w-0 w-full overflow-hidden">
+                  <SelectValue placeholder="Select topic" className="block truncate" />
                 </SelectTrigger>
-                <SelectContent>
-                  {topics.map((topic) => (
-                    <SelectItem key={topic.id} value={topic.id}>
-                      {topic.name}
-                    </SelectItem>
+                <SelectContent className="w-[--radix-select-trigger-width] max-w-[95vw] sm:max-w-[32rem] max-h-[60vh] overflow-y-auto">
+                  {Object.entries(groupedTopics).map(([rating, categories]) => (
+                    <SelectGroup key={rating}>
+                      <SelectLabel className="text-base font-bold text-primary">
+                        {RATING_NAMES[rating] || rating}
+                      </SelectLabel>
+                      {Object.entries(categories).map(([category, categoryTopics]) => (
+                        <div key={category}>
+                          <SelectLabel className="pl-4 text-sm font-semibold text-muted-foreground">
+                            {CATEGORY_NAMES[category] || category}
+                          </SelectLabel>
+                          {categoryTopics.map((topic) => (
+                            <SelectItem key={topic.id} value={topic.id} className="pl-8">
+                              <span className="block whitespace-normal break-words leading-snug">
+                                {topic.code ? `${topic.code} - ${topic.name}` : topic.name}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </div>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="difficulty">Difficulty</Label>
               <Select
                 value={formData.difficulty}
                 onValueChange={(value) => setFormData({ ...formData, difficulty: value })}
                 required
               >
-                <SelectTrigger id="difficulty">
-                  <SelectValue placeholder="Select difficulty" />
+                <SelectTrigger id="difficulty" className="min-w-0 w-full overflow-hidden">
+                  <SelectValue placeholder="Select difficulty" className="block truncate" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="easy">Easy</SelectItem>

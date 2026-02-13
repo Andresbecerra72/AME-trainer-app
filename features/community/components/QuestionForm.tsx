@@ -406,11 +406,13 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
 
       {/* Topic and Difficulty */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0">
           <Label htmlFor="topic_id">Topic *</Label>
           <Select value={formData.topic_id} onValueChange={(value) => handleChange("topic_id", value)}>
-            <SelectTrigger className={errors.topic_id ? "border-destructive" : ""}>
-              <SelectValue placeholder="Select topic" />
+            <SelectTrigger
+              className={`min-w-0 w-full overflow-hidden ${errors.topic_id ? "border-destructive" : ""}`}
+            >
+              <SelectValue placeholder="Select topic" className="block truncate" />
             </SelectTrigger>
             <SelectContent className="max-h-[300px]">
               {Object.entries(groupedTopics).map(([rating, categories]) => (
