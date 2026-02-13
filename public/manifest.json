@@ -1,6 +1,8 @@
 {
+  "id": "/",
   "name": "AME Exam Trainer - Aircraft Maintenance Engineer Study App",
   "short_name": "AME Trainer",
+  "version": "1.0.0",
   "description": "Master your AME exams with comprehensive study materials, practice questions, and exam simulation",
   "start_url": "/",
   "display": "standalone",
@@ -26,17 +28,24 @@
   "screenshots": [
     {
       "src": "/screenshots/dashboard.png",
-      "sizes": "1080x1920",
+      "sizes": "357x741",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Dashboard - Your study progress at a glance"
     },
     {
       "src": "/screenshots/practice.png",
-      "sizes": "1080x1920",
+      "sizes": "359x741",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Practice Mode - Study at your own pace"
+    },
+    {
+      "src": "/screenshots/study.png",
+      "sizes": "361x738",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Study by Raiting - Focus on your weak areas"
     }
   ],
   "shortcuts": [
@@ -56,7 +65,7 @@
       "name": "Practice",
       "short_name": "Practice",
       "description": "Start practicing questions",
-      "url": "/protected/practice",
+      "url": "/protected/exam/setup",
       "icons": [
         {
           "src": "/icon-192x192.png",
