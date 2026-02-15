@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/bottom-nav"
 import { getTopicById } from "@/features/topics/services/topic.server"
 import { getTopicQuestions } from "@/features/questions/services/question.server"
 import { MobileHeaderBack } from "@/components/mobile-header-back"
+import { getSession } from "@/features/auth"
 
 type PageProps = {
   params: Promise<{ id: string }>
@@ -13,6 +14,7 @@ type PageProps = {
 }
 
 export default async function TopicQuestionsPage({ params, searchParams }: PageProps) {
+  const { role } = await getSession()
   // Extract and validate URL parameters
   const [{ id }, { search = "", filter = "all" }] = await Promise.all([
     params,
@@ -72,7 +74,7 @@ export default async function TopicQuestionsPage({ params, searchParams }: PageP
         </div>
       </div>
 
-      <BottomNav />
+      <BottomNav userRole={role}/>
     </div>
   )
 }

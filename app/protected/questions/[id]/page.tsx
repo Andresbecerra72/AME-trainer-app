@@ -6,6 +6,8 @@ import { Edit, Trash2 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { BottomNav } from "@/components/bottom-nav";
 import Link from "next/link";
+import { ExamSignalControls } from "@/features/questions/examSignals/components/ExamSignalControls";
+import { getSignalCount, hasUserSignaled } from "@/features/questions/examSignals/server/examSignals.actions";
 
 export default async function ViewQuestionPage({ params }: { params: { id: string } }) {
   const { id } = await params;  
@@ -43,6 +45,8 @@ export default async function ViewQuestionPage({ params }: { params: { id: strin
 
   const isAuthor = user?.id === question.user_id;
   const isAdmin = question.author?.role === "admin" || question.author?.role === "super_admin";
+  const examSignalCount = await getSignalCount(id);
+  const hasSignaled = await hasUserSignaled(id);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -116,6 +120,16 @@ export default async function ViewQuestionPage({ params }: { params: { id: strin
             </p>
           </MobileCard>
         )}
+
+        {/* Exam Signals */}
+        <MobileCard>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Seen on TC exam</h3>
+          <ExamSignalControls
+            questionId={id}
+            initialCount={examSignalCount}
+            initialActive={hasSignaled}
+          />
+        </MobileCard>
 
         {/* Admin or Author Actions */}
         {(isAdmin || isAuthor) && (

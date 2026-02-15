@@ -23,7 +23,7 @@ export default async function CommunityPage({
   const sort = typeof params.sort === "string" ? params.sort : "recent"
   
   const topics = await getTopics()
-  const { profile } = await getSession()
+  const { profile, role } = await getSession()
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -49,7 +49,7 @@ export default async function CommunityPage({
         </Suspense>
       </main>
 
-      <BottomNav />
+      <BottomNav userRole={role} />
     </div>
   )
 }

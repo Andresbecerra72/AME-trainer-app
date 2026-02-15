@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react"
 import { getAllTopicsClient } from "@/features/topics/services/topic.api"
 import { getQuestionsByCategory } from "@/features/questions/services/question.actions"
+import { getSignalCountsForQuestions } from "@/features/questions/examSignals/server/examSignals.actions"
+import { getExamLikelihood } from "@/features/questions/examSignals/types"
 
 type Question = {
   id: string
@@ -35,6 +37,7 @@ export default function StudyCategoryPage() {
   const [showAnswer, setShowAnswer] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [categoryInfo, setCategoryInfo] = useState<{ label: string; prefix: string } | null>(null)
+  const [signalCounts, setSignalCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
     loadQuestions()
@@ -60,8 +63,12 @@ export default function StudyCategoryPage() {
 
       // Get questions for all topics in this category
       const allQuestions = await getQuestionsByCategory(prefix)
-      
-      setQuestions(allQuestions as Question[])
+
+      const questionsList = allQuestions as Question[]
+      setQuestions(questionsList)
+
+      const counts = await getSignalCountsForQuestions(questionsList.map((question) => question.id))
+      setSignalCounts(counts)
       setCategoryInfo({ label: categoryTopics[0]?.name.split("-")[0] || "Category", prefix })
     } catch (error) {
       console.error("Failed to load questions:", error)
@@ -113,6 +120,9 @@ export default function StudyCategoryPage() {
   }
 
   const currentQuestion = questions[currentIndex]
+  const examSignalCount = signalCounts[currentQuestion.id] ?? 0
+  const examLikelihood = getExamLikelihood(examSignalCount)
+  const examLikelihoodLabel = examLikelihood.charAt(0).toUpperCase() + examLikelihood.slice(1)
   const progress = ((currentIndex + 1) / questions.length) * 100
 
   return (
@@ -146,6 +156,12 @@ export default function StudyCategoryPage() {
             <Badge variant="secondary" className="text-xs">
               {currentQuestion.topic.name}
             </Badge>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Badge variant="secondary" className="text-xs">
+              Exam: {examLikelihoodLabel}
+            </Badge>
+            <span>{examSignalCount} reported</span>
           </div>
 
           {/* Question */}
