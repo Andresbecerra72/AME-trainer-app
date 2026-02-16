@@ -4,9 +4,10 @@ import { MobileHeader } from "@/components/mobile-header"
 import { MobileCard } from "@/components/mobile-card"
 import { BottomNav } from "@/components/bottom-nav"
 import { EmptyState } from "@/components/empty-state"
-import { QuestionCardItem } from "@/components/question-card-item"
+import { QuestionCardItemWithSignals } from "@/components/question-card-item-with-signals"
 import { Sparkles, TrendingUp } from "lucide-react"
 import { getRecommendedQuestions } from "@/lib/db-actions"
+import { getSignalDetailsForQuestions } from "@/features/questions/examSignals/server/examSignals.actions"
 
 export default async function RecommendationsPage() {
   const supabase = await createSupabaseServerClient()
@@ -22,6 +23,10 @@ export default async function RecommendationsPage() {
   const userRole = profile?.role || "user"
 
   const recommendations = await getRecommendedQuestions(user.id, 20)
+
+  // Batch fetch exam signal data
+  const questionIds = recommendations.map((q) => q.id)
+  const examSignalDetails = await getSignalDetailsForQuestions(questionIds)
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -45,7 +50,11 @@ export default async function RecommendationsPage() {
               <h3 className="font-semibold">Focus on these topics</h3>
             </div>
             {recommendations.map((question) => (
-              <QuestionCardItem key={question.id} question={question} />
+              <QuestionCardItemWithSignals
+                key={question.id}
+                question={question}
+                examSignalData={examSignalDetails[question.id]}
+              />
             ))}
           </div>
         ) : (
@@ -54,7 +63,7 @@ export default async function RecommendationsPage() {
             title="No recommendations yet"
             description="Take some exams to get personalized question recommendations based on your performance!"
             actionLabel="Take an Exam"
-            actionhref="/protected/exam/setup"
+            actionHref="/protected/exam/setup"
           />
         )}
       </div>

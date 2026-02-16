@@ -2,17 +2,29 @@
 
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp } from "lucide-react"
+import { TrendingUp, Eye } from "lucide-react"
 
 interface ProbabilityMeterProps {
   upvotes: number
   downvotes: number
   commentCount: number
   authorReputation: number
+  examSignalCount?: number
+  examLikelihood?: "none" | "low" | "medium" | "high"
+  examScore?: number
 }
 
-export function ProbabilityMeter({ upvotes, downvotes, commentCount, authorReputation }: ProbabilityMeterProps) {
+export function ProbabilityMeter({
+  upvotes,
+  downvotes,
+  commentCount,
+  authorReputation,
+  examSignalCount = 0,
+  examLikelihood = "none",
+  examScore,
+}: ProbabilityMeterProps) {
   // Calculate probability based on multiple factors
+  console.log(examLikelihood, examScore)
   const netVotes = upvotes - downvotes
   const totalVotes = upvotes + downvotes
 
@@ -52,21 +64,57 @@ export function ProbabilityMeter({ upvotes, downvotes, commentCount, authorReput
     return "Low"
   }
 
+  const getExamColor = () => {
+    if (examLikelihood === "high") return "text-green-600 border-green-600"
+    if (examLikelihood === "medium") return "text-yellow-600 border-yellow-600"
+    if (examLikelihood === "low") return "text-orange-600 border-orange-600"
+    return "text-muted-foreground border-muted"
+  }
+
+  const getExamLabel = () => {
+    return examLikelihood.charAt(0).toUpperCase() + examLikelihood.slice(1)
+  }
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Real Exam Likelihood</span>
+    <div className="space-y-3">
+      {/* Community Probability */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Real Exam Likelihood</span>
+          </div>
+          <Badge variant="outline" className={getColor()}>
+            {getLabel()}
+          </Badge>
         </div>
-        <Badge variant="outline" className={getColor()}>
-          {getLabel()}
-        </Badge>
+        <Progress value={probability} className="h-2" />
+        <p className="text-xs text-muted-foreground">
+          {probability}% - Based on community engagement and author reputation
+        </p>
       </div>
-      <Progress value={probability} className="h-2" />
-      <p className="text-xs text-muted-foreground">
-        {probability}% - Based on community engagement and author reputation
-      </p>
+
+      {/* Exam Signal Data */}
+      {examSignalCount > 0 && (
+        <div className="space-y-2 pt-2 border-t">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Eye className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Seen on TC Exam</span>
+            </div>
+            <Badge variant="outline" className={getExamColor()}>
+              {getExamLabel()}
+            </Badge>
+          </div>
+          {examScore !== undefined && (
+            <Progress value={examScore} className="h-2" />
+          )}
+          <p className="text-xs text-muted-foreground">
+            {examSignalCount} {examSignalCount === 1 ? "user" : "users"} reported seeing this on the exam
+            {examScore !== undefined && ` (${examScore}% confidence)`}
+          </p>
+        </div>
+      )}
     </div>
   )
 }

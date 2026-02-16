@@ -31,6 +31,7 @@ export async function getQuestionsByCategory(categoryPrefix: string) {
         option_d,
         correct_answer,
         explanation,
+        exam_signal_count,
         topic_id
       `)
       .eq("status", "approved")

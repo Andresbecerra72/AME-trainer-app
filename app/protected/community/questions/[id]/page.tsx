@@ -12,6 +12,8 @@ import { ShareButton } from "@/components/share-button"
 import { VoteControls } from "@/components/vote-controls"
 import { getSession } from "@/features/auth/services/getSession"
 import { getQuestionById } from "@/features/questions/services/question.server"
+import { ExamSignalControls } from "@/features/questions/examSignals/components/ExamSignalControls"
+import { getSignalCount, hasUserSignaled } from "@/features/questions/examSignals/server/examSignals.actions"
 import { createAddCommentHandler, getCommentsByQuestionId } from "@/features/comments/services/comments.server"
 import { createToggleBookmarkHandler, isBookmarkedByUser } from "@/features/bookmarks/services/bookmarks.server"
 import { createReportQuestionHandler, hasUserReportedQuestion, getQuestionReportsCount } from "@/features/reports/services/reports.server"
@@ -41,6 +43,8 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
   // Get reports count and vote counts
   const reportsCount = await getQuestionReportsCount(id)
   const { upvotes, downvotes } = await getQuestionVoteCounts(id)
+  const examSignalCount = await getSignalCount(id)
+  const hasSignaled = await hasUserSignaled(id)
 
   const isAuthor = user && question.author_id === user.id
   const canEdit = isAuthor || role === "admin" || role === "super_admin"
@@ -77,8 +81,10 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {question.topic && (
-                  <Badge variant="secondary" className="text-xs">
-                    {question.topic.name} - {question.topic.code}
+                  <Badge variant="secondary" className="text-xs max-w-[180px] sm:max-w-none">
+                    <span className="block truncate">
+                      {question.topic.code} {question.topic.name} 
+                    </span>
                   </Badge>
                 )}
                 <Badge variant="outline" className="text-xs capitalize">
@@ -171,6 +177,15 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
                 <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span>{comments?.length || 0}</span>
               </div>
+            </div>
+
+            {/* Exam Signals */}
+            <div className="pt-2 border-t">
+              <ExamSignalControls
+                questionId={id}
+                initialCount={examSignalCount}
+                initialActive={hasSignaled}
+              />
             </div>
           </div>
         </MobileCard>

@@ -23,7 +23,7 @@ type Question = {
 
 type EditButtonClientProps = {
   question: Question
-  topics: Array<{ id: string; name: string }>
+  topics: Array<{ id: string; name: string; code?: string }>
 }
 
 export function EditButtonClient({ question, topics }: EditButtonClientProps) {

@@ -1,11 +1,13 @@
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { QuestionCardItem } from "@/components/question-card-item"
+import { QuestionCardItemWithSignals } from "@/components/question-card-item-with-signals"
 import { BottomNav } from "@/components/bottom-nav"
 import { getTopicById } from "@/features/topics/services/topic.server"
 import { getTopicQuestions } from "@/features/questions/services/question.server"
 import { MobileHeaderBack } from "@/components/mobile-header-back"
+import { getSession } from "@/features/auth"
+import { getSignalDetailsForQuestions } from "@/features/questions/examSignals/server/examSignals.actions"
 
 type PageProps = {
   params: Promise<{ id: string }>
@@ -13,6 +15,7 @@ type PageProps = {
 }
 
 export default async function TopicQuestionsPage({ params, searchParams }: PageProps) {
+  const { role } = await getSession()
   // Extract and validate URL parameters
   const [{ id }, { search = "", filter = "all" }] = await Promise.all([
     params,
@@ -31,6 +34,11 @@ export default async function TopicQuestionsPage({ params, searchParams }: PageP
     searchQuery: search,
     filter,
   })
+
+  // Batch fetch exam signal data for all questions
+  const questionIds = questions.map((q) => q.id)
+  const examSignalDetails = await getSignalDetailsForQuestions(questionIds)
+  console.log("Exam signal details for questions:", examSignalDetails)
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -67,12 +75,18 @@ export default async function TopicQuestionsPage({ params, searchParams }: PageP
           {!questions || questions.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">No questions found</div>
           ) : (
-            questions.map((question) => <QuestionCardItem key={question.id} question={question} />)
+            questions.map((question) => (
+              <QuestionCardItemWithSignals
+                key={question.id}
+                question={question}
+                examSignalData={examSignalDetails[question.id]}
+              />
+            ))
           )}
         </div>
       </div>
 
-      <BottomNav />
+      <BottomNav userRole={role}/>
     </div>
   )
 }

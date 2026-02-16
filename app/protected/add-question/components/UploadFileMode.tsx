@@ -141,16 +141,6 @@ export function UploadFileMode({
 
   return (
     <div className="space-y-6 mb-16">
-      {/* Notification Permission Alert */}
-      {typeof window !== "undefined" && "Notification" in window && Notification.permission === "default" && (
-        <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800">
-          <Bell className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <AlertDescription className="text-sm text-blue-700 dark:text-blue-300">
-            Enable browser notifications to get updates when your import completes, even if you leave this page.
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Pending Jobs Card */}
       {!isPendingJobsLoading && pendingJobs.length > 0 && !job && (
         <PendingJobsCard 

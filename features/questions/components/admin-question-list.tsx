@@ -149,15 +149,33 @@ const searchParams = useSearchParams();
     return (
       <>
         {/* Stats */}
-        <div className="bg-card border border-border rounded-lg p-4">
+        <div className="bg-card border border-border rounded-lg p-4 flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             Showing <span className="font-semibold text-foreground">{allQuestions.length}</span> question{allQuestions.length !== 1 ? "s " : " "}
              of <span className="font-semibold text-foreground">{totalQuestions}</span>
           </p>
+          {isLoading && allQuestions.length > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Updating...</span>
+            </div>
+          )}
         </div>
         <div>
+          {/* Loading State */}
+          {isLoading && allQuestions.length === 0 && (
+            <Card>
+              <CardContent className="text-center py-8">
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <p className="text-muted-foreground">Loading questions...</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Questions List */}
-        {allQuestions.length === 0 ? (
+        {!isLoading && allQuestions.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
               <p className="text-muted-foreground">No questions found</p>
@@ -166,7 +184,7 @@ const searchParams = useSearchParams();
         ) : (
               <div
               ref={parentRef}
-              className="h-full overflow-auto"
+              className={`h-full overflow-auto transition-opacity duration-300 ${isLoading ? "opacity-75" : "opacity-100"}`}
               style={{ contain: "strict", minHeight: "800px" }}
             >
               <div
@@ -288,7 +306,7 @@ const searchParams = useSearchParams();
 
                     {/* Actions */}
                     <div className="px-3 py-2 bg-muted/30 border-t">
-                      <div className="flex gap-1.5">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-1.5">
                         <EditButtonClient 
                           question={{
                             id: question.id,
@@ -305,7 +323,7 @@ const searchParams = useSearchParams();
                           topics={topics}
                         />
 
-                        <div className="flex-1">
+                        <div className="w-full sm:flex-1">
                           <StatusUpdateButton
                             questionId={question.id}
                             status={question.status === "approved" ? "rejected" : "approved"}
