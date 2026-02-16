@@ -1,19 +1,18 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { MobileHeader } from "@/components/mobile-header"
 import { BottomNav } from "@/components/bottom-nav"
 import { redirect } from "next/navigation"
 import { getTopics } from "@/lib/db-actions"
 import { QuestionForm } from "@/features/community/components/QuestionForm"
+import { getSession } from "@/features/auth"
+import { getUserUnreadNotifications } from "@/features/notifications/services/notifications.server"
 
 export default async function AddQuestionPage() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+ const { user, role } = await getSession()
 
   if (!user) {
     redirect("/public/auth/login")
   }
+  const { count: unreadNotifications} = await getUserUnreadNotifications(user.id)
 
   const topics = await getTopics()
 
@@ -25,7 +24,7 @@ export default async function AddQuestionPage() {
         <QuestionForm topics={topics} mode="create" />
       </main>
 
-      <BottomNav />
+      <BottomNav userRole={role} unreadNotifications={unreadNotifications || 0} />
     </div>
   )
 }

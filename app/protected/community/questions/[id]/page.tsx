@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Bookmark, Flag, CheckCircle, MessageSquare, AlertTriangle } from "lucide-react"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { Textarea } from "@/components/ui/textarea"
 import { BottomNav } from "@/components/bottom-nav"
@@ -19,26 +19,25 @@ import { createToggleBookmarkHandler, isBookmarkedByUser } from "@/features/book
 import { createReportQuestionHandler, hasUserReportedQuestion, getQuestionReportsCount } from "@/features/reports/services/reports.server"
 import { getUserVoteOnQuestion, getQuestionVoteCounts } from "@/features/votes/services/user-vote.api"
 import { ReportDialog } from "@/features/reports/components/report-dialog"
+import { getUserUnreadNotifications } from "@/features/notifications/services/notifications.server"
 
 export default async function QuestionDetailPage({ params }: { params: { id: string } }) {
   const { id } = await params
   const { user, role } = await getSession()
+  if (!user) {
+    redirect("/public/auth/login")
+  }
+  const { count: unreadNotifications} = await getUserUnreadNotifications(user.id)
 
   // Fetch question and comments via feature API
   const question = await getQuestionById(id)
   if (!question) notFound()
 
   const comments = await getCommentsByQuestionId(id)
-
-  // Check if user has bookmarked
-  let isBookmarked = false
-  let hasReported = false
-  let userVote: number | undefined
-  if (user) {
-    isBookmarked = await isBookmarkedByUser(user.id, id)
-    hasReported = await hasUserReportedQuestion(user.id, id)
-    userVote = await getUserVoteOnQuestion(id)
-  }
+  const  isBookmarked = await isBookmarkedByUser(user.id, id)
+  const  hasReported = await hasUserReportedQuestion(user.id, id)
+  const userVote = await getUserVoteOnQuestion(id)
+  
 
   // Get reports count and vote counts
   const reportsCount = await getQuestionReportsCount(id)
@@ -48,6 +47,7 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
 
   const isAuthor = user && question.author_id === user.id
   const canEdit = isAuthor || role === "admin" || role === "super_admin"
+  const isPending = question.status === "pending"
 
   // Server action handlers bound to this question id
   const addComment = createAddCommentHandler(id)
@@ -62,6 +62,13 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
       <MobileHeader title="Question Details" showBack />
 
       <div className="p-4 space-y-6 max-w-4xl mx-auto">
+        {/* Pending Banner */}
+        {isPending && (
+          <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-900 dark:bg-yellow-950/30 dark:text-yellow-200">
+            This question is pending approval by an administrator.
+          </div>
+        )}
+
         {/* Question Card */}
         <MobileCard>
           <div className="space-y-4">
@@ -146,11 +153,21 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
                 </Button>
               </form>
               {canEdit && (
-                <Button variant="outline" size="sm" className="sm:flex-1" asChild>
-                  <Link href={`/protected/community/questions/${id}/edit`}>
-                    <span className="hidden sm:inline">Edit</span>
-                    <span className="sm:hidden">Edit</span>
-                  </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="sm:flex-1"
+                  asChild={!isPending}
+                  disabled={isPending}
+                >
+                  {isPending ? (
+                    <span className="hidden sm:inline">Edit (Pending)</span>
+                  ) : (
+                    <Link href={`/protected/community/questions/${id}/edit`}>
+                      <span className="hidden sm:inline">Edit</span>
+                      <span className="sm:hidden">Edit</span>
+                    </Link>
+                  )}
                 </Button>
               )}
               <div className="sm:flex-1">
@@ -244,7 +261,7 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
         </div>
       </div>
 
-      <BottomNav userRole={role} />
+      <BottomNav userRole={role} unreadNotifications={unreadNotifications || 0}/>
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { validateQuestionUniqueness } from "@/features/questions/services/duplicates"
+import { createNotification } from "@/features/notifications/services/notifications.api"
 
 export interface QuestionFormData {
   question_text: string
@@ -70,6 +71,18 @@ export async function createCommunityQuestion(data: QuestionFormData) {
     throw new Error(`Database error: ${error.message}`)
   }
 
+  try {
+    await createNotification({
+      user_id: user.id,
+      type: "comment",
+      title: "Question pending approval",
+      message: "Your question is pending approval by an Administrator.",
+      link: `/protected/community/questions/${question.id}`,
+    })
+  } catch (notifyError) {
+    console.error("Failed to create pending-approval notification:", notifyError)
+  }
+
   revalidatePath("/protected/community")
   return question
 }
@@ -119,6 +132,18 @@ export async function updateCommunityQuestion(questionId: string, data: Partial<
   if (error) {
     console.error("Error updating question:", error)
     throw new Error("Failed to update question")
+  }
+
+    try {
+    await createNotification({
+      user_id: user.id,
+      type: "comment",
+      title: "Question pending approval",
+      message: "Your edited question is pending approval by an Administrator.",
+      link: `/protected/community/questions/${questionId}`,
+    })
+  } catch (notifyError) {
+    console.error("Failed to create pending-approval notification:", notifyError)
   }
 
   revalidatePath("/protected/community")
