@@ -9,6 +9,7 @@ import { ProfileActions } from "@/features/profiles/components/ProfileActions"
 import { ProfileBadges } from "@/features/profiles/components/ProfileBadges"
 import { ProfileStatsGrid } from "@/features/profiles/components/ProfileStatsGrid"
 import { RecentActivity } from "@/features/profiles/components/RecentActivity"
+import { getUserUnreadNotifications } from "@/features/notifications/services/notifications.server"
 
 export default async function ProfilePage({ params }: { params: { id: string } }) {
   const { id: paramId } = await params
@@ -30,6 +31,8 @@ export default async function ProfilePage({ params }: { params: { id: string } }
   if (!profileData) {
     notFound()
   }
+
+  const { count: unreadNotifications} = await getUserUnreadNotifications(profileId)
 
   const { profile, stats, badgeLevel, questions, badges } = profileData
 
@@ -62,7 +65,7 @@ export default async function ProfilePage({ params }: { params: { id: string } }
         <RecentActivity questions={questions} />
       </div>
 
-      <BottomNav userRole={currentUserProfile.role} />
+      <BottomNav userRole={currentUserProfile.role} unreadNotifications={unreadNotifications || 0} />
     </div>
   )
 }

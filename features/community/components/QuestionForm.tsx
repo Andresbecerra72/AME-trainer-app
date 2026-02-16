@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { AlertCircle, CheckCircle, Loader2 } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/hooks/use-toast"
 import { createCommunityQuestion, updateCommunityQuestion } from "@/features/community/community.api"
 import { questionFormSchema, type QuestionFormValues } from "@/features/community/community.validation"
 import { checkQuestionDuplicates } from "@/features/questions/services/duplicates"
@@ -56,6 +56,28 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const showError = (message: string) => {
+    toast({
+      title: "Error",
+      description: message,
+      variant: "destructive",
+    })
+  }
+
+  const showSuccess = (message: string) => {
+    toast({
+      title: "Success",
+      description: message,
+    })
+  }
+
+  const showWarning = (message: string) => {
+    toast({
+      title: "Warning",
+      description: message,
+    })
+  }
 
   // Group topics by rating and category
   const groupedTopics = useMemo(() => {
@@ -96,7 +118,7 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
 
   const checkForDuplicates = async () => {
     if (!formData.question_text || formData.question_text.trim().length < 10) {
-      toast.error("Question text too short to check for duplicates (minimum 10 characters)")
+      showError("Question text too short to check for duplicates (minimum 10 characters)")
       return
     }
 
@@ -107,12 +129,12 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
       setDuplicateChecked(true)
       
       if (results.length > 0) {
-        toast.warning(`Found ${results.length} similar question(s)`)
+        showWarning(`Found ${results.length} similar question(s)`) 
       } else {
-        toast.success("No duplicates found!")
+        showSuccess("No duplicates found!")
       }
     } catch (error) {
-      toast.error("Failed to check for duplicates")
+      showError("Failed to check for duplicates")
     } finally {
       setCheckingDuplicates(false)
     }
@@ -138,7 +160,7 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
     e.preventDefault()
     
     if (!validateForm()) {
-      toast.error("Please fix the errors in the form")
+      showError("Please fix the errors in the form")
       return
     }
 
@@ -151,9 +173,9 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
         setDuplicateChecked(true)
         
         if (results.length > 0) {
-          toast.warning(`Found ${results.length} similar question(s). Please review them before continuing.`, {
-            duration: 5000,
-          })
+          showWarning(
+            `Found ${results.length} similar question(s). Please review them before continuing.`
+          )
           setLoading(false)
           
           // Scroll to duplicate check section
@@ -166,12 +188,10 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
           
           return
         } else {
-          toast.success("No duplicates found. Submitting question...", {
-            duration: 2000,
-          })
+          showSuccess("No duplicates found. Submitting question...")
         }
       } catch (error) {
-        toast.error("Failed to check for duplicates")
+        showError("Failed to check for duplicates")
         setLoading(false)
         return
       }
@@ -181,18 +201,18 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
     try {
       if (mode === "edit" && initialData?.id) {
         await updateCommunityQuestion(initialData.id, formData as QuestionFormValues)
-        toast.success("Question updated successfully!")
+        showSuccess("Question updated. It is pending admin approval.")
         router.push(`/protected/community/questions/${initialData.id}`)
       } else {
         try {
-          const question = await createCommunityQuestion(formData as QuestionFormValues)
-          toast.success("Question submitted for review!")
+          await createCommunityQuestion(formData as QuestionFormValues)
+          showSuccess("Question submitted. It is pending admin approval.")
           router.push("/protected/community")
         } catch (createError: any) {
           console.error("Create error caught:", createError)
           // Check if it's a duplicate error
           if (createError.message && createError.message.includes("similar")) {
-            toast.error(createError.message, { duration: 7000 })
+            showError(createError.message)
             // Force re-check to show duplicates
             setDuplicateChecked(false)
             const results = await checkQuestionDuplicates(formData.question_text!)
@@ -206,7 +226,7 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
               }
             }, 200)
           } else {
-            toast.error(createError.message || "Failed to submit question")
+            showError(createError.message || "Failed to submit question")
           }
           throw createError
         }
@@ -214,7 +234,7 @@ export function QuestionForm({ topics, initialData, mode = "create" }: QuestionF
     } catch (error: any) {
       // Don't show duplicate toast here, already shown above
       if (!error.message?.includes("similar")) {
-        toast.error(error.message || "Failed to submit question")
+        showError(error.message || "Failed to submit question")
       }
     } finally {
       setLoading(false)

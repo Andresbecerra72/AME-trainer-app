@@ -8,6 +8,8 @@ import { CommunityContent } from "@/features/community/components/CommunityConte
 import { CommunityFilters } from "@/features/community/components/CommunityFilters"
 import { getTopics } from "@/lib/db-actions"
 import { getSession } from "@/features/auth/services/getSession"
+import { getUserUnreadNotifications } from "@/features/notifications/services/notifications.server"
+import { redirect } from "next/navigation"
 
 type SearchParamsType = Promise<{ [key: string]: string | string[] | undefined }>
 
@@ -16,6 +18,11 @@ export default async function CommunityPage({
 }: {
   searchParams: SearchParamsType
 }) {
+  const { profile, role } = await getSession()
+  if (!profile) {
+    redirect("/public/auth/login")
+  }
+
   const params = await searchParams
   const search = typeof params.search === "string" ? params.search : ""
   const topic = typeof params.topic === "string" ? params.topic : "all"
@@ -23,7 +30,7 @@ export default async function CommunityPage({
   const sort = typeof params.sort === "string" ? params.sort : "recent"
   
   const topics = await getTopics()
-  const { profile, role } = await getSession()
+  const { count: unreadNotifications} = await getUserUnreadNotifications(profile.id)
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -49,7 +56,7 @@ export default async function CommunityPage({
         </Suspense>
       </main>
 
-      <BottomNav userRole={role} />
+      <BottomNav userRole={role} unreadNotifications={unreadNotifications || 0}/>
     </div>
   )
 }
