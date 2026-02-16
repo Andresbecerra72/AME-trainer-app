@@ -83,7 +83,7 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
                 {question.topic && (
                   <Badge variant="secondary" className="text-xs max-w-[180px] sm:max-w-none">
                     <span className="block truncate">
-                      {question.topic.name} - {question.topic.code}
+                      {question.topic.code} {question.topic.name} 
                     </span>
                   </Badge>
                 )}

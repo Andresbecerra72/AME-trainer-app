@@ -1,13 +1,20 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { getExamLikelihood } from "../types"
-import { getSignalCount, hasUserSignaled, toggleUserSignal } from "../server/examSignals.actions"
+import { toggleUserSignal } from "../server/examSignals.actions"
 
 interface UseExamSignalsOptions {
   initialCount?: number
   initialActive?: boolean
+}
+
+export interface ExamSignalPayload {
+  examCode?: string | null
+  seenMonth?: string | null
+  seenYear?: number | null
+  confidence?: number | null
 }
 
 export function useExamSignals(questionId: string, options?: UseExamSignalsOptions) {
@@ -16,46 +23,10 @@ export function useExamSignals(questionId: string, options?: UseExamSignalsOptio
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    const hasInitial = typeof options?.initialCount === "number" && typeof options?.initialActive === "boolean"
-    if (hasInitial) return
-
-    let isMounted = true
-
-    const load = async () => {
-      setIsLoading(true)
-      try {
-        const [nextCount, nextActive] = await Promise.all([
-          getSignalCount(questionId),
-          hasUserSignaled(questionId),
-        ])
-
-        if (!isMounted) return
-        setCount(nextCount)
-        setActive(nextActive)
-      } catch (error) {
-        if (!isMounted) return
-        toast({
-          title: "Error",
-          description: "Failed to load exam signals.",
-          variant: "destructive",
-        })
-      } finally {
-        if (isMounted) setIsLoading(false)
-      }
-    }
-
-    load()
-
-    return () => {
-      isMounted = false
-    }
-  }, [options?.initialActive, options?.initialCount, questionId, toast])
-
-  const toggle = useCallback(async () => {
+  const toggle = useCallback(async (payload?: ExamSignalPayload) => {
     setIsLoading(true)
     try {
-      const result = await toggleUserSignal(questionId)
+      const result = await toggleUserSignal(questionId, payload)
       setActive(result.active)
       setCount(result.count)
     } catch (error) {

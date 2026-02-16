@@ -20,6 +20,7 @@ type Question = {
   option_c: string
   option_d: string
   correct_answer: "A" | "B" | "C" | "D"
+  exam_signal_count: number
   explanation?: string
   topic: {
     name: string
@@ -148,20 +149,18 @@ export default function StudyCategoryPage() {
 
         {/* Flashcard */}
         <MobileCard className="p-6 sm:p-8 space-y-6 min-h-[400px] flex flex-col">
-          {/* Topic Badge */}
-          <div className="flex items-center justify-between">
-            <Badge variant="outline" className="text-xs">
-              {currentQuestion.topic.code}
+          {/* Topic and Exam Signal Badges */}
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <Badge variant="outline" className="text-xs max-w-full truncate">
+              {currentQuestion.topic.code} 
+              <span className="max-w-[10rem] sm:max-w-[14rem] truncate">{currentQuestion.topic.name}</span>
             </Badge>
-            <Badge variant="secondary" className="text-xs">
-              {currentQuestion.topic.name}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="secondary" className="text-xs">
-              Exam: {examLikelihoodLabel}
-            </Badge>
-            <span>{examSignalCount} reported</span>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="secondary" className="text-xs">
+                Exam Likelihood: {examLikelihoodLabel}
+              </Badge>
+              <span className="whitespace-nowrap">{examSignalCount} reported</span>
+            </div>
           </div>
 
           {/* Question */}

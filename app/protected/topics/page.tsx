@@ -26,7 +26,7 @@ const RATING_CONFIG = {
     label: "M Rating",
     description: "Mechanics",
     categories: [
-      { id: "SPM", label: "Standard Practices", prefix: "M-SPM" },
+      { id: "SPM", label: "Standard Practices Maintenance", prefix: "M-SPM" },
       { id: "AF", label: "Airframe", prefix: "M-AF" },
       { id: "PP", label: "Powerplant", prefix: "M-PP" },
     ],
@@ -202,7 +202,7 @@ export default function TopicsPage() {
                         return (
                           <Link key={topic.id} href={`/protected/topics/${topic.id}`}>
                             <TopicCard
-                              title={topic.name}
+                              title={`${topic.code} ${topic.name}`}
                               icon={Icon}
                               progress={topic.progress}
                               questionsCount={topic.questionsCount}
