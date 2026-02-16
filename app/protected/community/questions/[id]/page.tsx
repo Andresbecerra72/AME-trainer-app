@@ -20,6 +20,7 @@ import { createReportQuestionHandler, hasUserReportedQuestion, getQuestionReport
 import { getUserVoteOnQuestion, getQuestionVoteCounts } from "@/features/votes/services/user-vote.api"
 import { ReportDialog } from "@/features/reports/components/report-dialog"
 import { getUserUnreadNotifications } from "@/features/notifications/services/notifications.server"
+import { MobileHeaderBack } from "@/components/mobile-header-back"
 
 export default async function QuestionDetailPage({ params }: { params: { id: string } }) {
   const { id } = await params
@@ -59,7 +60,7 @@ export default async function QuestionDetailPage({ params }: { params: { id: str
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <MobileHeader title="Question Details" showBack />
+      <MobileHeaderBack title="Question Details" backUrl="/protected/community"  />
 
       <div className="p-4 space-y-6 max-w-4xl mx-auto">
         {/* Pending Banner */}
