@@ -3,6 +3,7 @@ import { MessageCircle, CheckCircle2, Eye, ThumbsUp, ThumbsDown, User } from "lu
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { getExamLikelihood } from "@/features/questions/examSignals/types"
 
 interface CommunityQuestionCardProps {
   question: {
@@ -17,6 +18,7 @@ interface CommunityQuestionCardProps {
     difficulty: "easy" | "medium" | "hard"
     comments_count?: number
     views_count?: number
+    exam_signal_count?: number
     upvotes?: number
     downvotes?: number
     created_at: string
@@ -52,6 +54,9 @@ export function CommunityQuestionCard({ question }: CommunityQuestionCardProps) 
   const upvotes = question.upvotes || 0
   const downvotes = question.downvotes || 0
   const score = upvotes - downvotes
+  const examSignalCount = question.exam_signal_count || 0
+  const examLikelihood = getExamLikelihood(examSignalCount)
+  const examLikelihoodLabel = examLikelihood.charAt(0).toUpperCase() + examLikelihood.slice(1)
 
   return (
     <Link href={`/protected/community/questions/${question.id}`}>
@@ -135,8 +140,13 @@ export function CommunityQuestionCard({ question }: CommunityQuestionCardProps) 
               </div>
               <div className="flex items-center gap-1">
                 <Eye className="h-3.5 w-3.5" />
-                <span>{question.views_count || 0}</span>
+                <span>{examSignalCount}</span>
               </div>
+              {examSignalCount > 0 && (
+                <Badge variant="secondary" className="h-5 text-[10px] px-1.5">
+                  Exam Likelihood: {examLikelihoodLabel}
+                </Badge>
+              )}
             </div>
             <span className="text-[10px] text-primary/60">View →</span>
           </div>
